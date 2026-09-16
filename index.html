@@ -10,22 +10,66 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  /* Menu déroulant des suggestions */
+  .top-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+    position: relative !important;
+  }
+  .search-area {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  #searchToggle {
+    display: none !important;
+  }
+  #searchWrap {
+    display: flex !important;
+    position: relative !important;
+    align-items: center !important;
+  }
+  #searchWrap::before {
+    content: "⌕";
+    position: absolute;
+    left: 14px;
+    font-size: 17px;
+    color: #84cc16;
+    pointer-events: none;
+    line-height: 1;
+    z-index: 10;
+  }
+  #search {
+    display: block !important;
+    height: 38px !important;
+    width: 240px !important;
+    border-radius: 20px !important;
+    padding: 0 16px 0 38px !important;
+    background: #121318 !important;
+    border: 1.5px solid #84cc16 !important;
+    color: #ffffff !important;
+    font-size: 13.5px !important;
+    outline: none !important;
+    box-shadow: 0 0 12px rgba(132, 204, 22, 0.25) !important;
+  }
+  /* Conteneur de résultats complètement forcé au premier plan */
   #searchResults {
-    position: absolute !important;
-    top: 48px !important;
-    right: 0 !important;
-    width: 330px !important;
+    position: fixed !important;
+    top: 60px !important;
+    right: 70px !important;
+    width: 320px !important;
     background: #111216 !important;
-    border: 1px solid rgba(132, 204, 22, 0.35) !important;
+    border: 1px solid rgba(132, 204, 22, 0.4) !important;
     border-radius: 16px !important;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.95) !important;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.95) !important;
     overflow-y: auto !important;
     max-height: 420px !important;
-    z-index: 999999 !important;
+    z-index: 99999999 !important;
     padding: 8px !important;
-    backdrop-filter: blur(20px) !important;
-    box-sizing: border-box !important;
+    backdrop-filter: blur(25px) !important;
+  }
+  .search-item:hover {
+    background: rgba(132, 204, 22, 0.12) !important;
   }
 </style>
 </head>
@@ -41,17 +85,15 @@
       <button class="nav" data-filter="new">Nouveautés</button>
       <button class="nav" data-filter="mylist">Ma liste</button>
     </nav>
-    <div class="top-actions" style="display:flex!important;align-items:center!important;gap:14px!important;position:relative!important;">
-      <div class="search-area" id="searchArea" style="position:relative!important;display:flex!important;align-items:center!important;background:none!important;border:none!important;padding:0!important;margin:0!important;">
-        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="true" style="display:none!important;"></button>
-        <div class="search-wrap" id="searchWrap" style="display:flex!important;position:relative!important;align-items:center!important;width:auto!important;background:none!important;border:none!important;">
-          <span style="position:absolute;left:14px;font-size:17px;color:#84cc16;pointer-events:none;line-height:1;z-index:10;">⌕</span>
-          <input id="search" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu" style="display:block!important;height:38px!important;width:240px!important;border-radius:20px!important;padding:0 16px 0 38px!important;background:#121318!important;border:1.5px solid #84cc16!important;color:#ffffff!important;font-size:13.5px!important;outline:none!important;box-shadow:0 0 12px rgba(132,204,22,0.25)!important;box-sizing:border-box!important;">
-          <!-- On retire la classe 'hidden' et on masque initialement avec style="display:none;" -->
-          <div id="searchResults" class="search-results" role="listbox" aria-label="Résultats de recherche" style="display:none;"></div>
+    <div class="top-actions">
+      <div class="search-area" id="searchArea">
+        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="true"></button>
+        <div class="search-wrap" id="searchWrap">
+          <input id="search" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu">
+          <div id="searchResults" class="search-results" style="display:none;"></div>
         </div>
       </div>
-      <button class="avatar" id="accountButton" title="Compte" style="width:36px!important;height:36px!important;border-radius:50%!important;background:#181920!important;border:1.5px solid #84cc16!important;color:#ffffff!important;font-weight:700!important;font-size:13px!important;display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;box-shadow:0 0 10px rgba(132,204,22,0.2)!important;flex-shrink:0!important;box-sizing:border-box!important;">S</button>
+      <button class="avatar" id="accountButton" title="Compte" style="width:36px!important;height:36px!important;border-radius:50%!important;background:#181920!important;border:1.5px solid #84cc16!important;color:#ffffff!important;font-weight:700!important;font-size:13px!important;display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;">S</button>
     </div>
   </header>
 
@@ -157,5 +199,78 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
-<script src="app.js?v=2"></script></body>
+
+<!-- Moteur de recherche direct qui pilote l'affichage instantané -->
+<script>
+window.addEventListener('load', () => {
+  const input = document.getElementById('search');
+  const box = document.getElementById('searchResults');
+  if (!input || !box) return;
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (q.length < 2) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+
+    // Récupère tout le catalogue présent
+    const catalog = (window.contents && window.contents.length) 
+      ? window.contents 
+      : [...(window.demoCatalog || []), ...(window.extraCatalog || [])];
+
+    const matches = catalog.filter(item => {
+      const t = String(item.title || '').toLowerCase();
+      return t.includes(q);
+    }).slice(0, 6);
+
+    if (!matches.length) {
+      box.innerHTML = '<div style="padding:16px;color:#71717a;font-size:13px;text-align:center;">Aucun résultat trouvé</div>';
+      box.style.display = 'block';
+      return;
+    }
+
+    box.innerHTML = matches.map(item => {
+      const poster = item.poster_url || item.poster || 'https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA';
+      const year = item.year || '—';
+      const type = (item.type === 'serie' || item.type === 'tv') ? 'SÉRIE' : (item.type === 'anime' ? 'ANIMÉ' : 'FILM');
+
+      return `
+        <div class="search-item" data-id="${item.id}" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s ease;">
+          <img src="${poster}" alt="" style="width:42px;height:58px;border-radius:7px;object-fit:cover;background:#202028;flex-shrink:0;">
+          <div style="flex:1;min-width:0;overflow:hidden;">
+            <div style="color:#ffffff;font-size:13.5px;font-weight:700;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.title}</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9ca3af;">
+              <span>${year}</span>
+              <span style="background:#84cc16;color:#07080b;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:800;">${type}</span>
+            </div>
+          </div>
+          <span style="color:#6b7280;font-size:20px;">›</span>
+        </div>
+      `;
+    }).join('');
+
+    box.style.display = 'block';
+
+    box.querySelectorAll('.search-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-id');
+        box.style.display = 'none';
+        input.value = '';
+        if (typeof openDetail === 'function') openDetail(id);
+      });
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !box.contains(e.target)) {
+      box.style.display = 'none';
+    }
+  });
+});
+</script>
+
+<script src="app.js?v=3"></script>
+</body>
 </html>
