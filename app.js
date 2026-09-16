@@ -596,117 +596,329 @@ document.addEventListener("click",e=>{
   const brand=e.target.closest?.("#brandHome");
   if(brand && brand!==brandHome) goToHomeFromBrand(e);
 },true);
+$("searchToggle").addEventListener("click",()=>{
+  const wrap=$("searchWrap");
+  const isOpen=wrap.classList.toggle("open");
+  $("searchToggle").setAttribute("aria-expanded",isOpen?"true":"false");
+  if(isOpen)$("search").focus();
+});
 
 // ==========================================
-// RECHERCHE DYNAMIQUE TMDB + SUPABASE SANS AUCUN BLOCAGE
+// RECHERCHE DYNAMIQUE TMDB + SUPABASE
 // ==========================================
+
 let searchDebounceTimer;
-async function renderSearchResults(query){
-  const box = $("searchResults"); 
-  if(!box) return;
-  const q = String(query||"").trim().toLowerCase();
-  
-  if(!q || q.length < 2){
+let searchRequestId = 0;
+
+async function renderSearchResults(query) {
+  const box = $("searchResults");
+  if (!box) return;
+
+  const q = String(query || "").trim().toLowerCase();
+
+  // Annule les anciennes recherches distantes
+  searchRequestId++;
+  const currentRequestId = searchRequestId;
+
+  if (!q || q.length < 2) {
     box.innerHTML = "";
+    box.classList.add("hidden");
     box.style.display = "none";
     return;
   }
 
-  // 1. Recherche instantanée dans le catalogue déjà chargé
-  let matches = contents.filter(x => String(x.title||"").toLowerCase().includes(q));
+  // Recherche immédiate dans le catalogue déjà chargé
+  const matches = contents.filter(item => {
+    const title = String(item.title || "").toLowerCase();
+    const originalTitle = String(
+      item.original_title || item.original_name || ""
+    ).toLowerCase();
+
+    return title.includes(q) || originalTitle.includes(q);
+  });
+
+  // Affiche immédiatement les résultats locaux
   displaySearchDropdown(matches, box);
 
-  // 2. Recherche distante via la Edge Function TMDB de Nexora
+  // Recherche TMDB après un court délai
   clearTimeout(searchDebounceTimer);
+
   searchDebounceTimer = setTimeout(async () => {
     try {
-      const { data } = await db.functions.invoke("nexora-tmdb-details", {
-        body: { action: "search", query: q }
-      });
+      const { data, error } = await db.functions.invoke(
+        "nexora-tmdb-details",
+        {
+          body: {
+            action: "search",
+            query: q
+          }
+        }
+      );
 
-      if (data && data.results && Array.isArray(data.results)) {
-        const tmdbMatches = data.results.map(item => ({
-          id: `tmdb-${item.media_type||'movie'}-${item.id}`,
+      if (error) {
+        console.warn("Erreur recherche TMDB :", error);
+        return;
+      }
+
+      // Ignore la réponse si l'utilisateur a déjà changé sa recherche
+      if (currentRequestId !== searchRequestId) return;
+
+      if (!data || !Array.isArray(data.results)) {
+        return;
+      }
+
+      const tmdbMatches = data.results
+        .filter(item => item && (item.title || item.name))
+        .map(item => ({
+          id: `tmdb-${item.media_type || "movie"}-${item.id}`,
           tmdb_id: item.id,
           title: item.title || item.name,
-          type: (item.media_type === 'tv') ? 'serie' : 'film',
-          year: (item.release_date || item.first_air_date || '').substring(0,4),
-          poster_url: item.poster_path ? `https://image.tmdb.org/t/p/w200${item.poster_path}` : null
+          original_title: item.original_title || item.original_name || "",
+          type: item.media_type === "tv" ? "serie" : "film",
+          year: (
+            item.release_date ||
+            item.first_air_date ||
+            ""
+          ).substring(0, 4),
+          poster_url: item.poster_path
+            ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
+            : null
         }));
 
-        // Fusion des résultats locaux + TMDB
-        const map = new Map();
-        [...matches, ...tmdbMatches].forEach(item => {
-          const key = String(item.tmdb_id || item.id);
-          if (!map.has(key)) map.set(key, item);
-        });
+      // Fusion des résultats locaux et TMDB sans doublons
+      const resultMap = new Map();
 
-        displaySearchDropdown([...map.values()], box);
-      }
-    } catch(err) {
-      console.warn("Recherche distante :", err);
+      [...matches, ...tmdbMatches].forEach(item => {
+        const key = String(item.tmdb_id || item.id);
+
+        if (!resultMap.has(key)) {
+          resultMap.set(key, item);
+        }
+      });
+
+      displaySearchDropdown(
+        [...resultMap.values()],
+        box
+      );
+
+    } catch (error) {
+      console.warn("Recherche distante TMDB :", error);
     }
-  }, 200);
+  }, 250);
 }
 
-function displaySearchDropdown(results, box){
-  if(!results || !results.length){
-    box.innerHTML = `<div style="padding:14px;color:#71717a;font-size:13px;text-align:center;">Aucun résultat pour cette recherche.</div>`;
+function displaySearchDropdown(results, box) {
+  if (!box) return;
+
+  if (!results || !results.length) {
+    box.innerHTML = `
+      <div
+        style="
+          padding: 20px;
+          color: #71717a;
+          font-size: 13px;
+          text-align: center;
+        "
+      >
+        Aucun résultat pour cette recherche.
+      </div>
+    `;
+
+    box.classList.remove("hidden");
     box.style.display = "block";
     return;
   }
 
   const items = results.slice(0, 6);
-  box.innerHTML = items.map(x => {
-    const poster = imageUrl(x, "poster");
-    const year = x.year || "—";
-    const typeLabel = labelType(x.type);
+
+  box.innerHTML = items.map(item => {
+    const poster = imageUrl(item, "poster");
+    const year = item.year || "—";
+    const typeLabel = labelType(item.type);
+
+    const posterSource = poster
+      ? escapeAttr(poster)
+      : "https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA";
 
     return `
-      <div class="search-item" data-search-id="${escapeAttr(x.id)}" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s ease;">
-        <img src="${poster ? escapeAttr(poster) : 'https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA'}" alt="" style="width:42px;height:56px;border-radius:6px;object-fit:cover;background:#202028;flex-shrink:0;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13.5px;font-weight:600;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffffff;">${escapeHtml(x.title)}</div>
-          <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9ca3af;">
+      <div
+        class="search-item"
+        data-search-id="${escapeAttr(item.id)}"
+        role="option"
+        tabindex="0"
+        style="
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: background 0.15s ease;
+          box-sizing: border-box;
+        "
+      >
+        <img
+          src="${posterSource}"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          style="
+            width: 42px;
+            height: 58px;
+            border-radius: 7px;
+            object-fit: cover;
+            background: #202028;
+            flex-shrink: 0;
+          "
+          onerror="this.onerror=null;this.src='https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA';"
+        >
+
+        <div
+          style="
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              color: #ffffff;
+              font-size: 14px;
+              font-weight: 700;
+              line-height: 1.3;
+              margin-bottom: 7px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            "
+          >
+            ${escapeHtml(item.title || "Sans titre")}
+          </div>
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex-wrap: wrap;
+              color: #9ca3af;
+              font-size: 12px;
+              line-height: 1;
+            "
+          >
             <span>${escapeHtml(year)}</span>
-            <span style="background:#84cc16;color:#0b0c10;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;">${escapeHtml(typeLabel)}</span>
+
+            <span
+              style="
+                display: inline-flex;
+                align-items: center;
+                background: ${
+                  item.type === "film"
+                    ? "#7137d1"
+                    : item.type === "anime"
+                      ? "#e05a2a"
+                      : "#9c1db5"
+                };
+                color: #ffffff;
+                padding: 5px 9px;
+                border-radius: 7px;
+                font-size: 10px;
+                font-weight: 800;
+                text-transform: uppercase;
+                line-height: 1;
+              "
+            >
+              ${escapeHtml(typeLabel)}
+            </span>
           </div>
         </div>
-        <span style="color:#6b7280;font-size:14px;">→</span>
+
+        <span
+          style="
+            color: #52525b;
+            font-size: 25px;
+            font-weight: 300;
+            line-height: 1;
+            flex-shrink: 0;
+          "
+        >
+          ›
+        </span>
       </div>
     `;
-  }).join('');
+  }).join("");
 
-  // On force l'affichage en ligne directe pour court-circuiter tout CSS qui masquerait la boîte
+  box.classList.remove("hidden");
   box.style.display = "block";
+  box.style.visibility = "visible";
+  box.style.opacity = "1";
+  box.style.pointerEvents = "auto";
 
-  // Clic sur un résultat
-  box.querySelectorAll("[data-search-id]").forEach(el => {
-    el.addEventListener("click", () => {
-      const id = el.getAttribute("data-search-id");
+  box.querySelectorAll(".search-item").forEach(element => {
+    element.addEventListener("mouseenter", () => {
+      element.style.background = "rgba(132, 204, 22, 0.10)";
+    });
+
+    element.addEventListener("mouseleave", () => {
+      element.style.background = "transparent";
+    });
+
+    const openResult = () => {
+      const id = element.getAttribute("data-search-id");
+      if (!id) return;
+
+      box.classList.add("hidden");
       box.style.display = "none";
       $("search").value = "";
       openDetail(id);
+    };
+
+    element.addEventListener("click", openResult);
+
+    element.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openResult();
+      }
     });
   });
 }
 
-$("search").addEventListener("input", () => renderSearchResults($("search").value));
-$("search").addEventListener("keydown", e => {
-  if(e.key === "Enter"){
-    const first = $("searchResults")?.querySelector("[data-search-id]");
-    if(first){ e.preventDefault(); first.click(); }
+$("search")?.addEventListener("input", event => {
+  renderSearchResults(event.target.value);
+});
+
+$("search")?.addEventListener("keydown", event => {
+  const box = $("searchResults");
+
+  if (event.key === "Enter") {
+    const firstResult = box?.querySelector("[data-search-id]");
+    if (firstResult) {
+      event.preventDefault();
+      firstResult.click();
+    }
   }
-  if(e.key === "Escape"){
+
+  if (event.key === "Escape") {
+    event.preventDefault();
     $("search").value = "";
-    $("searchResults").style.display = "none";
+    if (box) {
+      box.innerHTML = "";
+      box.classList.add("hidden");
+      box.style.display = "none";
+    }
+    $("search").blur();
   }
 });
 
-document.addEventListener("click", e => {
-  if(!e.target.closest?.("#searchArea")){
+document.addEventListener("click", event => {
+  if (!event.target.closest?.("#searchArea")) {
     const box = $("searchResults");
-    if(box) box.style.display = "none";
+    if (box) {
+      box.classList.add("hidden");
+      box.style.display = "none";
+    }
   }
 });
 
