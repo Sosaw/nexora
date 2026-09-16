@@ -5,8 +5,7 @@ const brandHome = document.getElementById("brandHome");
 const $ = id => document.getElementById(id);
 let contents=[], currentFilter="all", selected=null, currentUser=null, authMode="login";
 
-// Catalogue de démonstration : affiches de films connus pour donner au prototype un vrai rendu streaming.
-// Les affiches sont chargées depuis TMDB. Les vidéos complètes doivent venir de sources que tu as le droit de diffuser.
+// Catalogue de démonstration
 const demoCatalog = [
   {id:9001,title:"Dune : Deuxième Partie",type:"film",year:2024,genre:"Science-fiction",rating:8.6,duration_minutes:166,poster_url:"https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/7H8w5D3W5W3g5q6Q0n9o4dQvY1.jpg",is_featured:true,is_new:true,description:"Paul Atréides s'unit aux Fremen et prépare sa revanche sur ceux qui ont détruit sa famille."},
   {id:9002,title:"Interstellar",type:"film",year:2014,genre:"Science-fiction",rating:8.7,duration_minutes:169,poster_url:"https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg",description:"Une équipe traverse un trou de ver pour trouver un nouvel espoir pour l'humanité."},
@@ -20,7 +19,6 @@ const demoCatalog = [
   {id:9010,title:"Gladiator II",type:"film",year:2024,genre:"Action · Drame",rating:6.7,duration_minutes:148,poster_url:"https://image.tmdb.org/t/p/w500/2cxhvwyEwRlysAmRH4iodkvo0z5.jpg",description:"Des années après le règne de Maximus, une nouvelle génération entre dans l’arène et doit affronter les ambitions de Rome."}
 ];
 
-// Séries / animés de démonstration pour donner au catalogue la densité d'une vraie plateforme.
 const extraCatalog = [
   {id:9101,title:"Stranger Things",type:"serie",year:2016,genre:"Fantastique · Thriller",rating:8.6,poster_url:"https://image.tmdb.org/t/p/w500/x2LSRK2Cm7MZhjluni1msVJ3wDF.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/49WJfeN0moxb9IPfGn8AIqMGskD.jpg",description:"À Hawkins, un groupe d'adolescents se retrouve au cœur d'un mystère surnaturel qui dépasse tout ce qu'ils imaginaient.",is_featured:true},
   {id:9102,title:"Breaking Bad",type:"serie",year:2008,genre:"Drame · Crime",rating:9.5,poster_url:"https://image.tmdb.org/t/p/w500/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg",description:"Un professeur de chimie se lance dans une entreprise clandestine qui va bouleverser sa vie et celle de ses proches.",is_featured:true},
@@ -139,15 +137,8 @@ function bgStyle(item, prefer="poster"){const url=imageUrl(item,prefer);return u
 function normalizeContentType(item={}){
   const raw=String(item.type||item.media_type||item.content_type||item.category||"").toLowerCase().trim();
   const genres=String(item.genre||item.genres||item.genre_names||"").toLowerCase();
-  const language=String(item.original_language||item.originalLanguage||"").toLowerCase();
-  const countries=Array.isArray(item.origin_country)?item.origin_country.join(","):String(item.origin_country||item.originCountry||"");
   const explicitAnime=item.is_anime===true||item.isAnime===true||raw==="anime"||raw==="animation";
   const animated=/(animation|anime|animé|anime)/i.test(genres);
-  const japanese=language==="ja"||/(^|[,\s])jp($|[,\s])/i.test(countries)||/japan|japon/i.test(countries);
-  // Les fiches TMDB peuvent enregistrer un animé comme "serie". Dès que
-  // le contenu est explicitement animé, on le range dans la catégorie Animés
-  // (les films d'animation restent des films). Cela corrige notamment les
-  // séries japonaises comme Chainsaw Man.
   if(explicitAnime || (animated && !["film","movie"].includes(raw))) return "anime";
   if(["film","movie"].includes(raw)) return "film";
   if(["anime","animation"].includes(raw)) return "anime";
@@ -156,19 +147,10 @@ function normalizeContentType(item={}){
 }
 function normalizeContent(item={}){return {...item,type:normalizeContentType(item)}}
 
-// ==========================================
-// CONFIGURATION ET FILTRAGE DU CATALOGUE
-// ==========================================
 const CONFIG_CATALOG = {
-  // Langues autorisées dans le catalogue (Français, Anglais/US, Espagnol, Japonais, Coréen, Italien, Allemand)
   allowedLanguages: ['fr', 'en', 'es', 'ja', 'ko', 'it', 'de'],
-  // Langues exclues (Indiennes: hindi, tamoul, telugu, etc., Thaïlandais, etc.)
   excludedLanguages: ['hi', 'ta', 'te', 'ml', 'kn', 'bn', 'mr', 'pa', 'gu', 'ur', 'th', 'id', 'tl', 'vi'],
-  // Pays d'origine exclus (IN = Inde, TH = Thaïlande)
   excludedCountries: ['IN', 'TH'],
-  // Si vous activez cette option (true), seuls les films/séries ayant un lien vidéo
-  // configuré dans Supabase apparaîtront sur le site.
-  // Laissez à false tant que vos liens Vidzy ne sont pas tous ajoutés dans Supabase.
   onlyWithVideoUrl: false
 };
 
@@ -192,23 +174,13 @@ function isAllowedContent(item){
   const lang = String(item.original_language || item.originalLanguage || '').toLowerCase().trim();
   const rawCountry = Array.isArray(item.origin_country) ? item.origin_country.join(',') : String(item.origin_country || item.originCountry || '');
   const country = rawCountry.toUpperCase();
-
-  // 1. Exclusion immédiate des films indiens et thaïlandais par code de langue
   if(lang && CONFIG_CATALOG.excludedLanguages.includes(lang)) return false;
-
-  // 2. Exclusion par pays d'origine (Inde, Thaïlande)
   if(CONFIG_CATALOG.excludedCountries.some(c => new RegExp('(^|[,\s])' + c + '($|[,\s])', 'i').test(country))) return false;
-
-  // 3. Si une langue est renseignée, vérification qu'elle fait partie des langues autorisées
   if(lang && !CONFIG_CATALOG.allowedLanguages.includes(lang)){
-    // Exception pour les animés japonais
     if(item.type === 'anime' && (lang === 'ja' || /JP|JAPON|JAPAN/i.test(country))) return true;
     return false;
   }
-
-  // 4. Si l'option Vidzy/Vidéo est activée, masquer les contenus sans vidéo
   if(CONFIG_CATALOG.onlyWithVideoUrl && !hasVideoSource(item)) return false;
-
   return true;
 }
 
@@ -348,12 +320,10 @@ function renderDetailLoading(title="Chargement…"){
 function pickTrailer(videos, title=""){
   const results=(videos?.results||[]).filter(v=>v.site==="YouTube"&&v.key);
   if(!results.length)return null;
-  // Priorité à une bande-annonce française/VF lorsqu'elle existe dans TMDB.
   const french=results.find(v=>{
     const text=`${v.name||""} ${v.iso_639_1||""} ${v.iso_3166_1||""}`.toLowerCase();
     return /(^|\b)(fr|fra|french|français|francaise|vf|doublage)(\b|$)/i.test(text);
   });
-  // Si aucune vidéo française n'est fournie par TMDB, on utilise une recherche YouTube ciblée VF plutôt que d'ouvrir une bande-annonce étrangère.
   return french||null;
 }
 
@@ -372,18 +342,16 @@ function getTrailerUrl(trailer, title=""){
     : `https://www.youtube.com/results?search_query=${query}`;
 }
 
-function getTrailerLabel(trailer){
-  return trailer?.key ? "Bande-annonce VF" : "Trouver la bande-annonce VF";
-}
-
-function renderTrailer(trailer, title=""){
-  const url=getTrailerUrl(trailer,title);
-  const label=trailer?.key ? (trailer.name||"Voir la bande-annonce sur YouTube") : "Rechercher la bande-annonce française sur YouTube";
-  return `<div class="detail-block trailer-block"><div class="detail-block-head"><span>BANDE-ANNONCE</span><small>YouTube · VF si disponible</small></div><a class="trailer-link-card" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer"><span class="trailer-play">▶</span><span class="trailer-link-copy"><strong>${escapeHtml(label)}</strong><small>Ouvrir la bande-annonce correspondante sur YouTube</small></span><span class="trailer-arrow">↗</span></a></div>`;
-}
-
 async function openDetail(id){
-  const item=contents.find(x=>String(x.id)===String(id));if(!item)return;
+  let item=contents.find(x=>String(x.id)===String(id));
+  if(!item && String(id).startsWith("tmdb-")) {
+    const parts = String(id).split("-");
+    const mType = parts[1];
+    const tId = Number(parts[2]);
+    item = { id, tmdb_id: tId, type: mType === "tv" ? "serie" : "film", title: "Chargement…", description: "" };
+    contents.push(item);
+  }
+  if(!item)return;
   activeView="detail";activePerson=null;renderDetailLoading("Chargement de la fiche…");
   try{
     let data={item,details:null};
@@ -543,30 +511,6 @@ function populateEpisodeControls(item, initialSeason=1, initialEpisode=1){
   episodeSelect.onchange=update;
   updatePlayerEpisodeInfo(item,Number(seasonSelect.value),Number(episodeSelect.value));
 }
-async function hydratePlayerSeries(item,initialSeason=1,initialEpisode=1){
-  if(!isSeries(item)||!item.tmdb_id)return;
-  try{
-    const detail=await fetchNexoraDetails({action:'content',type:item.type,tmdb_id:item.tmdb_id});
-    const d=detail?.details||detail||{};
-    const count=Number(d.number_of_seasons||d.seasons_count||item.number_of_seasons||item.seasons_count||0);
-    const seasonRows=Array.isArray(d.seasons)?d.seasons.filter(x=>Number(x?.season_number||x?.season)>0):[];
-    const numbers=[...new Set([...getAvailableSeasonNumbers(item),...seasonRows.map(x=>Number(x.season_number||x.season)),...(count?Array.from({length:Math.min(count,50)},(_,i)=>i+1):[])])].filter(Boolean).sort((a,b)=>a-b);
-    const loaded=getSeasons(item)||{};
-    await Promise.all(numbers.map(async season=>{
-      if(Array.isArray(loaded[String(season)])&&loaded[String(season)].length)return;
-      try{
-        const result=await fetchNexoraDetails({action:'season',type:item.type,tmdb_id:item.tmdb_id,season_number:season,season});
-        const eps=result?.season?.episodes||result?.episodes||result?.details?.episodes||result?.data?.episodes;
-        if(Array.isArray(eps)&&eps.length)loaded[String(season)]=eps;
-        else if(!loaded[String(season)])loaded[String(season)]=[];
-      }catch(error){console.warn('Saison lecteur indisponible',season,error);}
-    }));
-    if(numbers.length)item.seasons=loaded;
-    populateEpisodeControls(item,initialSeason,initialEpisode);
-    const season=Number($("playerSeasonSelect")?.value||initialSeason),episode=Number($("playerEpisodeSelect")?.value||initialEpisode);
-    updatePlayerEpisodeInfo(item,season,episode);
-  }catch(error){console.warn('Détails des saisons du lecteur indisponibles',error);}
-}
 function getPlayerSources(item, season=1, episode=1){
   const sources=[];
   const seasons=getSeasons(item)||{};
@@ -622,7 +566,6 @@ function openPlayer(id, initialSeason=1, initialEpisode=1){
   });
   if(directVideoUrl) params.set('video_url', directVideoUrl);
 
-  // Redirection vers le lecteur plein écran NEXORA (player-test.html)
   window.location.href = `player-test.html?${params.toString()}`;
 }
 function closePlayer(){const video=$("playerVideo");if(window.__nexoraHls){window.__nexoraHls.destroy();window.__nexoraHls=null;}video.pause();video.removeAttribute('src');video.load();document.body.classList.remove('player-open');$("playerModal").classList.add('hidden');$("playerModal").setAttribute('aria-hidden','true');}
@@ -659,17 +602,94 @@ $("searchToggle").addEventListener("click",()=>{
   $("searchToggle").setAttribute("aria-expanded",isOpen?"true":"false");
   if(isOpen)$("search").focus();
 });
-function renderSearchResults(query){
+
+// ==========================================
+// RECHERCHE DYNAMIQUE AVEC SUPABASE & TMDB
+// ==========================================
+let searchDebounceTimer;
+async function renderSearchResults(query){
   const box=$("searchResults"); if(!box)return;
   const q=String(query||"").trim().toLowerCase();
   if(!q){box.innerHTML="";box.classList.add("hidden");return;}
-  const results=contents.filter(x=>String(x.title||"").toLowerCase().includes(q)).slice(0,8);
-  box.innerHTML=results.length?results.map(x=>`<button type="button" class="search-result" data-search-result="${escapeAttr(x.id)}"><span class="search-result-poster" style="${bgStyle(x)}">${imageUrl(x)?`<img src="${escapeAttr(imageUrl(x))}" alt="" loading="lazy">`:''}</span><span class="search-result-copy"><strong>${escapeHtml(x.title)}</strong><small>${escapeHtml([labelType(x.type),x.year,x.genre].filter(Boolean).join(" · "))}</small></span><span class="search-result-arrow">→</span></button>`).join(""):`<div class="search-no-result">Aucun contenu correspondant.</div>`;
-  box.classList.remove("hidden");
+
+  // 1. Recherche instantanée dans les éléments chargés localement
+  let localResults = contents.filter(x=>String(x.title||"").toLowerCase().includes(q));
+
+  // Affichage immédiat des résultats locaux s'il y en a
+  renderDropdownHTML(localResults, box);
+
+  // 2. Recherche distante dans Supabase
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(async () => {
+    try {
+      const { data, error } = await db.from("contents")
+        .select("*")
+        .ilike("title", `%${q}%`)
+        .limit(8);
+
+      if (!error && Array.isArray(data) && data.length) {
+        const distantResults = data.map(normalizeContent).filter(isAllowedContent);
+        // Fusion des résultats locaux et distants
+        const map = new Map();
+        [...localResults, ...distantResults].forEach(item => {
+          if (!map.has(String(item.id))) map.set(String(item.id), item);
+        });
+        renderDropdownHTML([...map.values()], box);
+      }
+    } catch(err) {
+      console.warn("Erreur recherche distante Supabase :", err);
+    }
+  }, 200);
 }
+
+function renderDropdownHTML(results, box){
+  if(!results || !results.length){
+    box.innerHTML = `<div style="padding:14px;color:#71717a;font-size:13px;text-align:center;">Aucun contenu trouvé sur NEXORA.</div>`;
+    box.classList.remove("hidden");
+    return;
+  }
+
+  const items = results.slice(0, 6);
+  box.innerHTML = items.map(x => {
+    const poster = imageUrl(x, "poster");
+    const year = x.year || "—";
+    const typeLabel = labelType(x.type);
+
+    return `
+      <div class="search-item" data-search-result="${escapeAttr(x.id)}" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s ease;">
+        <img class="search-thumb" src="${poster ? escapeAttr(poster) : 'https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA'}" alt="${escapeAttr(x.title)}" style="width:42px;height:56px;border-radius:6px;object-fit:cover;background:#202028;flex-shrink:0;">
+        <div class="search-info" style="flex:1;min-width:0;">
+          <div class="search-title" style="font-size:13.5px;font-weight:600;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffffff;">${escapeHtml(x.title)}</div>
+          <div class="search-meta" style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9ca3af;">
+            <span>${escapeHtml(year)}</span>
+            <span class="search-badge" style="background:#84cc16;color:#0b0c10;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;">${escapeHtml(typeLabel)}</span>
+          </div>
+        </div>
+        <span class="search-arrow" style="color:#6b7280;font-size:14px;">→</span>
+      </div>
+    `;
+  }).join('');
+
+  box.classList.remove("hidden");
+
+  // Liaison du clic sur chaque résultat
+  box.querySelectorAll("[data-search-result]").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = el.getAttribute("data-search-result");
+      box.classList.add("hidden");
+      $("search").value = "";
+      openDetail(id);
+    });
+  });
+}
+
 $("search").addEventListener("input",()=>renderSearchResults($("search").value));
 $("search").addEventListener("keydown",e=>{if(e.key==="Enter"){const first=$("searchResults")?.querySelector("[data-search-result]");if(first){e.preventDefault();first.click()}}if(e.key==="Escape"){$("search").value="";renderSearchResults("");$("searchWrap").classList.remove("open")}});
-document.addEventListener("click",e=>{const result=e.target.closest?.("[data-search-result]");if(result){const id=resolveContentId(result.getAttribute("data-search-result"));if(id!==null){$("search").value="";renderSearchResults("");$("searchWrap").classList.remove("open");openDetail(id);}}else if(!e.target.closest?.("#searchWrap")){ $("searchResults")?.classList.add("hidden"); }});
+document.addEventListener("click",e=>{
+  if(!e.target.closest?.("#searchArea")){
+    $("searchResults")?.classList.add("hidden");
+  }
+});
 window.addEventListener("scroll",()=>$("topbar").classList.toggle("scrolled",window.scrollY>30));document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closePlayer()}});
 
 db.auth.getSession().then(({data})=>{currentUser=data.session?.user||null;updateAuthUI()});db.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;updateAuthUI()});
@@ -687,8 +707,6 @@ async function syncCatalogIfNeeded(){
 }
 async function fetchAllContents(){const all=[];const pageSize=1000;for(let from=0;;from+=pageSize){const to=from+pageSize-1;const {data,error}=await db.from("contents").select("*").order("created_at",{ascending:false}).range(from,to);if(error)throw error;const batch=data||[];all.push(...batch);if(batch.length<pageSize)break}return all}
 async function loadContents(){
-  // Afficher les contenus déjà présents immédiatement : la synchronisation TMDB
-  // ne doit jamais bloquer l'ouverture ni l'utilisation de la page.
   $("status").innerHTML='<span class="status-dot"></span> Chargement du catalogue…';
   let dbContents=[];
   try{
@@ -703,8 +721,6 @@ async function loadContents(){
   if(hero) setHero(hero);
   render();
 
-  // Synchronisation en arrière-plan, après le premier rendu.
-  // Elle ne bloque ni l'affichage ni les interactions du site.
   syncCatalogIfNeeded().then(async result=>{
     if(!result) return;
     try{
