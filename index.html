@@ -9,6 +9,57 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Alignement parfait de la barre de recherche et de la loupe */
+  .top-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  .search-area {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  .search-toggle {
+    background: transparent !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-size: 20px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+  }
+  .search-wrap {
+    display: flex !important;
+    align-items: center !important;
+  }
+  .search-wrap input {
+    height: 36px !important;
+    border-radius: 18px !important;
+    padding: 0 14px !important;
+    background: rgba(20, 20, 25, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #fff !important;
+    font-size: 14px !important;
+    outline: none !important;
+  }
+  .avatar {
+    width: 36px !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+  }
+</style>
 </head>
 <body>
 <div class="app-shell">
