@@ -979,7 +979,7 @@
       }
 
       try {
-        const res = await fetch(`http://localhost:3000/api/extract?tmdb_id=${tmdbId}&type=${mediaType}&season=${seasonNumber}&episode=${episodeNumber}`);
+  const res = await fetch(`https://nexora-extractor.onrender.com/api/extract?tmdb_id=${tmdbId}&type=${mediaType}&season=${seasonNumber}&episode=${episodeNumber}`);
         const data = await res.json();
         if (data.success && data.streamUrl) startHls(data.streamUrl);
       } catch (e) { console.error(e); }
