@@ -596,56 +596,63 @@ document.addEventListener("click",e=>{
   const brand=e.target.closest?.("#brandHome");
   if(brand && brand!==brandHome) goToHomeFromBrand(e);
 },true);
-$("searchToggle").addEventListener("click",()=>{
-  const wrap=$("searchWrap");
-  const isOpen=wrap.classList.toggle("open");
-  $("searchToggle").setAttribute("aria-expanded",isOpen?"true":"false");
-  if(isOpen)$("search").focus();
-});
 
 // ==========================================
-// RECHERCHE DYNAMIQUE AVEC SUPABASE & TMDB
+// RECHERCHE DYNAMIQUE TMDB + SUPABASE SANS AUCUN BLOCAGE
 // ==========================================
 let searchDebounceTimer;
 async function renderSearchResults(query){
-  const box=$("searchResults"); if(!box)return;
-  const q=String(query||"").trim().toLowerCase();
-  if(!q){box.innerHTML="";box.classList.add("hidden");return;}
+  const box = $("searchResults"); 
+  if(!box) return;
+  const q = String(query||"").trim().toLowerCase();
+  
+  if(!q || q.length < 2){
+    box.innerHTML = "";
+    box.style.display = "none";
+    return;
+  }
 
-  // 1. Recherche instantanée dans les éléments chargés localement
-  let localResults = contents.filter(x=>String(x.title||"").toLowerCase().includes(q));
+  // 1. Recherche instantanée dans le catalogue déjà chargé
+  let matches = contents.filter(x => String(x.title||"").toLowerCase().includes(q));
+  displaySearchDropdown(matches, box);
 
-  // Affichage immédiat des résultats locaux s'il y en a
-  renderDropdownHTML(localResults, box);
-
-  // 2. Recherche distante dans Supabase
+  // 2. Recherche distante via la Edge Function TMDB de Nexora
   clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(async () => {
     try {
-      const { data, error } = await db.from("contents")
-        .select("*")
-        .ilike("title", `%${q}%`)
-        .limit(8);
+      const { data } = await db.functions.invoke("nexora-tmdb-details", {
+        body: { action: "search", query: q }
+      });
 
-      if (!error && Array.isArray(data) && data.length) {
-        const distantResults = data.map(normalizeContent).filter(isAllowedContent);
-        // Fusion des résultats locaux et distants
+      if (data && data.results && Array.isArray(data.results)) {
+        const tmdbMatches = data.results.map(item => ({
+          id: `tmdb-${item.media_type||'movie'}-${item.id}`,
+          tmdb_id: item.id,
+          title: item.title || item.name,
+          type: (item.media_type === 'tv') ? 'serie' : 'film',
+          year: (item.release_date || item.first_air_date || '').substring(0,4),
+          poster_url: item.poster_path ? `https://image.tmdb.org/t/p/w200${item.poster_path}` : null
+        }));
+
+        // Fusion des résultats locaux + TMDB
         const map = new Map();
-        [...localResults, ...distantResults].forEach(item => {
-          if (!map.has(String(item.id))) map.set(String(item.id), item);
+        [...matches, ...tmdbMatches].forEach(item => {
+          const key = String(item.tmdb_id || item.id);
+          if (!map.has(key)) map.set(key, item);
         });
-        renderDropdownHTML([...map.values()], box);
+
+        displaySearchDropdown([...map.values()], box);
       }
     } catch(err) {
-      console.warn("Erreur recherche distante Supabase :", err);
+      console.warn("Recherche distante :", err);
     }
   }, 200);
 }
 
-function renderDropdownHTML(results, box){
+function displaySearchDropdown(results, box){
   if(!results || !results.length){
-    box.innerHTML = `<div style="padding:14px;color:#71717a;font-size:13px;text-align:center;">Aucun contenu trouvé sur NEXORA.</div>`;
-    box.classList.remove("hidden");
+    box.innerHTML = `<div style="padding:14px;color:#71717a;font-size:13px;text-align:center;">Aucun résultat pour cette recherche.</div>`;
+    box.style.display = "block";
     return;
   }
 
@@ -656,40 +663,53 @@ function renderDropdownHTML(results, box){
     const typeLabel = labelType(x.type);
 
     return `
-      <div class="search-item" data-search-result="${escapeAttr(x.id)}" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s ease;">
-        <img class="search-thumb" src="${poster ? escapeAttr(poster) : 'https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA'}" alt="${escapeAttr(x.title)}" style="width:42px;height:56px;border-radius:6px;object-fit:cover;background:#202028;flex-shrink:0;">
-        <div class="search-info" style="flex:1;min-width:0;">
-          <div class="search-title" style="font-size:13.5px;font-weight:600;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffffff;">${escapeHtml(x.title)}</div>
-          <div class="search-meta" style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9ca3af;">
+      <div class="search-item" data-search-id="${escapeAttr(x.id)}" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s ease;">
+        <img src="${poster ? escapeAttr(poster) : 'https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA'}" alt="" style="width:42px;height:56px;border-radius:6px;object-fit:cover;background:#202028;flex-shrink:0;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:600;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffffff;">${escapeHtml(x.title)}</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9ca3af;">
             <span>${escapeHtml(year)}</span>
-            <span class="search-badge" style="background:#84cc16;color:#0b0c10;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;">${escapeHtml(typeLabel)}</span>
+            <span style="background:#84cc16;color:#0b0c10;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;">${escapeHtml(typeLabel)}</span>
           </div>
         </div>
-        <span class="search-arrow" style="color:#6b7280;font-size:14px;">→</span>
+        <span style="color:#6b7280;font-size:14px;">→</span>
       </div>
     `;
   }).join('');
 
-  box.classList.remove("hidden");
+  // On force l'affichage en ligne directe pour court-circuiter tout CSS qui masquerait la boîte
+  box.style.display = "block";
 
-  // Liaison du clic sur chaque résultat
-  box.querySelectorAll("[data-search-result]").forEach(el => {
+  // Clic sur un résultat
+  box.querySelectorAll("[data-search-id]").forEach(el => {
     el.addEventListener("click", () => {
-      const id = el.getAttribute("data-search-result");
-      box.classList.add("hidden");
+      const id = el.getAttribute("data-search-id");
+      box.style.display = "none";
       $("search").value = "";
       openDetail(id);
     });
   });
 }
 
-$("search").addEventListener("input",()=>renderSearchResults($("search").value));
-$("search").addEventListener("keydown",e=>{if(e.key==="Enter"){const first=$("searchResults")?.querySelector("[data-search-result]");if(first){e.preventDefault();first.click()}}if(e.key==="Escape"){$("search").value="";renderSearchResults("");$("searchWrap").classList.remove("open")}});
-document.addEventListener("click",e=>{
-  if(!e.target.closest?.("#searchArea")){
-    $("searchResults")?.classList.add("hidden");
+$("search").addEventListener("input", () => renderSearchResults($("search").value));
+$("search").addEventListener("keydown", e => {
+  if(e.key === "Enter"){
+    const first = $("searchResults")?.querySelector("[data-search-id]");
+    if(first){ e.preventDefault(); first.click(); }
+  }
+  if(e.key === "Escape"){
+    $("search").value = "";
+    $("searchResults").style.display = "none";
   }
 });
+
+document.addEventListener("click", e => {
+  if(!e.target.closest?.("#searchArea")){
+    const box = $("searchResults");
+    if(box) box.style.display = "none";
+  }
+});
+
 window.addEventListener("scroll",()=>$("topbar").classList.toggle("scrolled",window.scrollY>30));document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closePlayer()}});
 
 db.auth.getSession().then(({data})=>{currentUser=data.session?.user||null;updateAuthUI()});db.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;updateAuthUI()});
