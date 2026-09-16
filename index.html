@@ -9,6 +9,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Menu déroulant des suggestions */
+  #searchResults {
+    position: absolute !important;
+    top: 48px !important;
+    right: 0 !important;
+    width: 330px !important;
+    background: #111216 !important;
+    border: 1px solid rgba(132, 204, 22, 0.35) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.95) !important;
+    overflow-y: auto !important;
+    max-height: 420px !important;
+    z-index: 999999 !important;
+    padding: 8px !important;
+    backdrop-filter: blur(20px) !important;
+    box-sizing: border-box !important;
+  }
+</style>
 </head>
 <body>
 <div class="app-shell">
@@ -23,13 +42,13 @@
       <button class="nav" data-filter="mylist">Ma liste</button>
     </nav>
     <div class="top-actions" style="display:flex!important;align-items:center!important;gap:14px!important;position:relative!important;">
-      <!-- Zone de recherche forcée visible quoi qu'il arrive -->
       <div class="search-area" id="searchArea" style="position:relative!important;display:flex!important;align-items:center!important;background:none!important;border:none!important;padding:0!important;margin:0!important;">
         <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="true" style="display:none!important;"></button>
         <div class="search-wrap" id="searchWrap" style="display:flex!important;position:relative!important;align-items:center!important;width:auto!important;background:none!important;border:none!important;">
           <span style="position:absolute;left:14px;font-size:17px;color:#84cc16;pointer-events:none;line-height:1;z-index:10;">⌕</span>
           <input id="search" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu" style="display:block!important;height:38px!important;width:240px!important;border-radius:20px!important;padding:0 16px 0 38px!important;background:#121318!important;border:1.5px solid #84cc16!important;color:#ffffff!important;font-size:13.5px!important;outline:none!important;box-shadow:0 0 12px rgba(132,204,22,0.25)!important;box-sizing:border-box!important;">
-          <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Résultats de recherche" style="position:absolute!important;top:46px!important;right:0!important;width:320px!important;background:#111216!important;border:1px solid rgba(132,204,22,0.35)!important;border-radius:16px!important;box-shadow:0 20px 45px rgba(0,0,0,0.95)!important;overflow-y:auto!important;max-height:420px!important;z-index:999999!important;padding:8px!important;backdrop-filter:blur(20px)!important;box-sizing:border-box!important;"></div>
+          <!-- On retire la classe 'hidden' et on masque initialement avec style="display:none;" -->
+          <div id="searchResults" class="search-results" role="listbox" aria-label="Résultats de recherche" style="display:none;"></div>
         </div>
       </div>
       <button class="avatar" id="accountButton" title="Compte" style="width:36px!important;height:36px!important;border-radius:50%!important;background:#181920!important;border:1.5px solid #84cc16!important;color:#ffffff!important;font-weight:700!important;font-size:13px!important;display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;box-shadow:0 0 10px rgba(132,204,22,0.2)!important;flex-shrink:0!important;box-sizing:border-box!important;">S</button>
