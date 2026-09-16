@@ -10,50 +10,49 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  /* DESIGN BARRE DE RECHERCHE STYLE NAKA */
+  /* Alignement de l'en-tête */
   .top-actions {
     display: flex !important;
     align-items: center !important;
-    gap: 14px !important;
+    gap: 12px !important;
     position: relative !important;
   }
   .search-area {
     position: relative !important;
-  }
-  .search-toggle {
-    display: none !important; /* On intègre la loupe directement dans l'input */
-  }
-  .search-wrap {
-    position: relative !important;
     display: flex !important;
     align-items: center !important;
   }
-  .search-input-icon {
-    position: absolute;
-    left: 14px;
-    color: #a1a1aa;
-    font-size: 15px;
-    pointer-events: none;
-    z-index: 2;
+  /* La loupe cliquable */
+  .search-toggle {
+    background: transparent !important;
+    border: none !important;
+    color: #a1a1aa !important;
+    font-size: 19px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    transition: color 0.2s ease !important;
   }
-  .search-clear-btn {
-    position: absolute;
-    right: 14px;
-    background: transparent;
-    border: none;
-    color: #71717a;
-    font-size: 14px;
-    cursor: pointer;
-    display: none;
-    z-index: 2;
+  .search-toggle:hover {
+    color: #ffffff !important;
+  }
+  /* Le champ de saisie */
+  .search-wrap {
+    display: flex !important;
+    align-items: center !important;
+    position: relative !important;
   }
   .search-wrap input {
-    height: 38px !important;
-    width: 240px !important;
-    border-radius: 20px !important;
-    padding: 0 36px 0 38px !important;
+    height: 36px !important;
+    border-radius: 18px !important;
+    padding: 0 16px !important;
     background: rgba(24, 24, 32, 0.9) !important;
-    border: 1px solid rgba(168, 85, 247, 0.45) !important; /* Contour violet subtil */
+    border: 1px solid rgba(168, 85, 247, 0.45) !important;
     color: #ffffff !important;
     font-size: 13.5px !important;
     outline: none !important;
@@ -61,12 +60,10 @@
     transition: all 0.25s ease !important;
   }
   .search-wrap input:focus {
-    width: 280px !important;
     border-color: #a855f7 !important;
     box-shadow: 0 0 16px rgba(168, 85, 247, 0.3) !important;
   }
-  
-  /* MENU DÉROULANT DES RÉSULTATS STYLE PHOTO 2 */
+  /* Menu déroulant des résultats */
   .search-results {
     position: absolute !important;
     top: calc(100% + 10px) !important;
@@ -81,71 +78,7 @@
     padding: 10px !important;
     backdrop-filter: blur(20px) !important;
   }
-  .search-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    cursor: pointer;
-    text-decoration: none;
-    color: #ffffff;
-    transition: background 0.15s ease;
-  }
-  .search-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-  }
-  .search-thumb {
-    width: 44px;
-    height: 56px;
-    border-radius: 6px;
-    object-fit: cover;
-    background: #202028;
-    flex-shrink: 0;
-  }
-  .search-info {
-    flex: 1;
-    min-width: 0;
-  }
-  .search-title {
-    font-size: 13.5px;
-    font-weight: 600;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .search-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11.5px;
-    color: #9ca3af;
-  }
-  .search-badge {
-    background: #7e22ce;
-    color: #ffffff;
-    padding: 2px 7px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 600;
-  }
-  .search-arrow {
-    color: #6b7280;
-    font-size: 14px;
-  }
-  .search-view-all {
-    text-align: center;
-    padding: 10px 0 4px;
-    font-size: 12.5px;
-    color: #c084fc;
-    font-weight: 600;
-    cursor: pointer;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    margin-top: 6px;
-  }
-
-  /* AVATAR STYLE NAKA */
+  /* Avatar profil */
   .avatar {
     width: 36px !important;
     height: 36px !important;
@@ -178,10 +111,9 @@
     </nav>
     <div class="top-actions">
       <div class="search-area" id="searchArea">
+        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="false">🔍</button>
         <div class="search-wrap" id="searchWrap">
-          <span class="search-input-icon">🔍</span>
           <input id="search" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu">
-          <button class="search-clear-btn" id="searchClear">✕</button>
           <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Résultats de recherche"></div>
         </div>
       </div>
