@@ -10,53 +10,156 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  /* Alignement parfait de la barre de recherche et de la loupe */
+  /* DESIGN BARRE DE RECHERCHE STYLE NAKA */
   .top-actions {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 14px !important;
+    position: relative !important;
   }
   .search-area {
+    position: relative !important;
+  }
+  .search-toggle {
+    display: none !important; /* On intègre la loupe directement dans l'input */
+  }
+  .search-wrap {
     position: relative !important;
     display: flex !important;
     align-items: center !important;
   }
-  .search-toggle {
-    background: transparent !important;
-    border: none !important;
-    color: #ffffff !important;
-    font-size: 20px !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 36px !important;
-    height: 36px !important;
-    padding: 0 !important;
-    line-height: 1 !important;
+  .search-input-icon {
+    position: absolute;
+    left: 14px;
+    color: #a1a1aa;
+    font-size: 15px;
+    pointer-events: none;
+    z-index: 2;
   }
-  .search-wrap {
-    display: flex !important;
-    align-items: center !important;
+  .search-clear-btn {
+    position: absolute;
+    right: 14px;
+    background: transparent;
+    border: none;
+    color: #71717a;
+    font-size: 14px;
+    cursor: pointer;
+    display: none;
+    z-index: 2;
   }
   .search-wrap input {
-    height: 36px !important;
-    border-radius: 18px !important;
-    padding: 0 14px !important;
-    background: rgba(20, 20, 25, 0.85) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    color: #fff !important;
-    font-size: 14px !important;
+    height: 38px !important;
+    width: 240px !important;
+    border-radius: 20px !important;
+    padding: 0 36px 0 38px !important;
+    background: rgba(24, 24, 32, 0.9) !important;
+    border: 1px solid rgba(168, 85, 247, 0.45) !important; /* Contour violet subtil */
+    color: #ffffff !important;
+    font-size: 13.5px !important;
     outline: none !important;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.15) !important;
+    transition: all 0.25s ease !important;
   }
+  .search-wrap input:focus {
+    width: 280px !important;
+    border-color: #a855f7 !important;
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.3) !important;
+  }
+  
+  /* MENU DÉROULANT DES RÉSULTATS STYLE PHOTO 2 */
+  .search-results {
+    position: absolute !important;
+    top: calc(100% + 10px) !important;
+    right: 0 !important;
+    width: 320px !important;
+    background: #121319 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.85) !important;
+    overflow: hidden !important;
+    z-index: 99999 !important;
+    padding: 10px !important;
+    backdrop-filter: blur(20px) !important;
+  }
+  .search-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #ffffff;
+    transition: background 0.15s ease;
+  }
+  .search-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .search-thumb {
+    width: 44px;
+    height: 56px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #202028;
+    flex-shrink: 0;
+  }
+  .search-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .search-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .search-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: #9ca3af;
+  }
+  .search-badge {
+    background: #7e22ce;
+    color: #ffffff;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .search-arrow {
+    color: #6b7280;
+    font-size: 14px;
+  }
+  .search-view-all {
+    text-align: center;
+    padding: 10px 0 4px;
+    font-size: 12.5px;
+    color: #c084fc;
+    font-weight: 600;
+    cursor: pointer;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 6px;
+  }
+
+  /* AVATAR STYLE NAKA */
   .avatar {
     width: 36px !important;
     height: 36px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #ec4899, #db2777) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    border: none !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    border-radius: 50% !important;
-    padding: 0 !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 10px rgba(219, 39, 119, 0.35) !important;
     flex-shrink: 0 !important;
   }
 </style>
@@ -75,13 +178,14 @@
     </nav>
     <div class="top-actions">
       <div class="search-area" id="searchArea">
-        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="false">⌕</button>
         <div class="search-wrap" id="searchWrap">
+          <span class="search-input-icon">🔍</span>
           <input id="search" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu">
+          <button class="search-clear-btn" id="searchClear">✕</button>
           <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Résultats de recherche"></div>
         </div>
       </div>
-      <button class="avatar" id="accountButton" title="Compte">S</button>
+      <button class="avatar" id="accountButton" title="Compte">SO</button>
     </div>
   </header>
 
@@ -175,7 +279,7 @@
       <button class="auth-switch" id="authSwitch">Créer un compte</button>
     </div>
     <div id="authUser" class="hidden">
-      <div class="account-avatar" id="accountAvatar">S</div>
+      <div class="account-avatar" id="accountAvatar">SO</div>
       <div class="auth-kicker">MON ESPACE NEXORA</div>
       <h2 id="accountName">Compte NEXORA</h2>
       <p id="accountEmail" class="account-email"></p>
