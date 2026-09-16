@@ -10,96 +10,84 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  /* 
-   * CORRECTION DU DESIGN SANS CASSER APP.JS
-   */
   .top-actions {
     display: flex !important;
     align-items: center !important;
     gap: 14px !important;
     position: relative !important;
   }
-  
   .search-area {
     position: relative !important;
     display: flex !important;
     align-items: center !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
   }
-
-  /* On masque l'ancien bouton 'loupe' externe sans le supprimer du DOM */
-  #searchToggle {
-    display: none !important; 
+  .search-toggle {
+    display: none !important;
   }
-
-  /* On force le conteneur de recherche à être toujours visible et on ajoute l'icône loupe */
-  #searchWrap {
-    display: flex !important;
+  .search-wrap {
     position: relative !important;
+    display: flex !important;
     align-items: center !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    width: auto !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
-
-  /* Ajout de la petite loupe à l'intérieur du champ de saisie */
-  #searchWrap::before {
+  .search-wrap::before {
     content: "⌕";
     position: absolute;
     left: 14px;
     font-size: 18px;
-    color: #84cc16; /* Vert Lime */
+    color: #84cc16;
     pointer-events: none;
     line-height: 1;
     z-index: 2;
   }
-
-  /* Design du champ de saisie façon Naka */
-  #search {
+  .search-wrap input {
     height: 38px !important;
     width: 250px !important;
     border-radius: 20px !important;
     padding: 0 16px 0 38px !important;
     background: rgba(18, 19, 24, 0.95) !important;
-    border: 1.5px solid #84cc16 !important; /* Contour Vert Lime */
+    border: 1.5px solid #84cc16 !important;
     color: #ffffff !important;
     font-size: 13.5px !important;
     outline: none !important;
-    box-shadow: 0 0 12px rgba(132, 204, 22, 0.25) !important;
-    transition: all 0.25s ease !important;
-    display: block !important;
+    box-shadow: 0 0 10px rgba(132, 204, 22, 0.2) !important;
+    transition: all 0.2s ease !important;
   }
-
-  #search:focus {
+  .search-wrap input:focus {
     width: 280px !important;
-    box-shadow: 0 0 18px rgba(132, 204, 22, 0.45) !important;
+    box-shadow: 0 0 16px rgba(132, 204, 22, 0.4) !important;
   }
-
-  #search::placeholder {
+  .search-wrap input::placeholder {
     color: #71717a !important;
   }
-
-  /* Ajustement du menu des résultats géré par app.js */
+  /* Le menu déroulant qui s'ouvre sous la barre */
   #searchResults {
     position: absolute !important;
     top: calc(100% + 10px) !important;
     right: 0 !important;
-    width: 330px !important;
+    width: 320px !important;
     background: #111216 !important;
     border: 1px solid rgba(132, 204, 22, 0.35) !important;
     border-radius: 16px !important;
     box-shadow: 0 20px 45px rgba(0, 0, 0, 0.9) !important;
+    overflow-y: auto !important;
+    max-height: 420px !important;
     z-index: 999999 !important;
+    padding: 8px !important;
     backdrop-filter: blur(20px) !important;
   }
-
-  /* AVATAR */
   .avatar {
     width: 36px !important;
     height: 36px !important;
     border-radius: 50% !important;
     background: #181920 !important;
-    border: 1.5px solid #84cc16 !important; /* Contour Vert Lime */
+    border: 1.5px solid #84cc16 !important;
     color: #ffffff !important;
     font-weight: 700 !important;
     font-size: 13px !important;
@@ -107,7 +95,7 @@
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    box-shadow: 0 0 10px rgba(132, 204, 22, 0.25) !important;
+    box-shadow: 0 0 10px rgba(132, 204, 22, 0.2) !important;
     flex-shrink: 0 !important;
   }
 </style>
@@ -125,7 +113,6 @@
       <button class="nav" data-filter="mylist">Ma liste</button>
     </nav>
     <div class="top-actions">
-      <!-- Structure HTML d'origine STRICTEMENT conservée pour app.js -->
       <div class="search-area" id="searchArea">
         <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="false">⌕</button>
         <div class="search-wrap" id="searchWrap">
