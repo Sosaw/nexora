@@ -18,138 +18,124 @@
   }
   .search-area {
     position: relative !important;
-  }
-  .search-toggle {
-    display: none !important;
-  }
-
-  /* BARRE DE RECHERCHE DIRECTEMENT ACTIVE */
-  .search-wrap {
-    position: relative !important;
     display: flex !important;
     align-items: center !important;
   }
 
-  .search-wrap::before {
-    content: "⌕";
+  /* BARRE DE RECHERCHE FIXE AVEC LOUPE */
+  .search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search-box svg {
     position: absolute;
     left: 14px;
-    font-size: 18px;
-    color: #84cc16;
+    width: 16px;
+    height: 16px;
+    stroke: #84cc16;
+    fill: none;
     pointer-events: none;
-    line-height: 1;
     z-index: 2;
   }
-
-  .search-wrap input {
-    height: 38px !important;
-    width: 250px !important;
-    border-radius: 20px !important;
-    padding: 0 16px 0 38px !important;
-    background: rgba(18, 19, 24, 0.95) !important;
-    border: 1.5px solid #84cc16 !important; /* Vert Lime NEXORA */
-    color: #ffffff !important;
-    font-size: 13.5px !important;
-    outline: none !important;
-    box-shadow: 0 0 12px rgba(132, 204, 22, 0.25) !important;
-    transition: all 0.2s ease !important;
+  .search-box input {
+    height: 38px;
+    width: 250px;
+    border-radius: 20px;
+    padding: 0 16px 0 38px;
+    background: rgba(18, 19, 24, 0.95);
+    border: 1.5px solid #84cc16;
+    color: #ffffff;
+    font-size: 13.5px;
+    outline: none;
+    box-shadow: 0 0 12px rgba(132, 204, 22, 0.25);
+    transition: all 0.2s ease;
+  }
+  .search-box input:focus {
+    width: 280px;
+    box-shadow: 0 0 18px rgba(132, 204, 22, 0.45);
+  }
+  .search-box input::placeholder {
+    color: #71717a;
   }
 
-  .search-wrap input:focus {
-    width: 280px !important;
-    box-shadow: 0 0 18px rgba(132, 204, 22, 0.45) !important;
+  /* PANNEAU DÉROULANT DES SUGGESTIONS */
+  .search-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 330px;
+    background: #111216;
+    border: 1px solid rgba(132, 204, 22, 0.3);
+    border-radius: 16px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.9);
+    overflow-y: auto;
+    max-height: 420px;
+    z-index: 999999;
+    padding: 8px;
+    backdrop-filter: blur(20px);
+    display: none;
   }
-
-  .search-wrap input::placeholder {
-    color: #71717a !important;
+  .search-dropdown.active {
+    display: block;
   }
-
-  /* MENU DÉROULANT DES PROPOSITIONS */
-  .search-results {
-    position: absolute !important;
-    top: calc(100% + 10px) !important;
-    right: 0 !important;
-    width: 320px !important;
-    background: #111216 !important;
-    border: 1px solid rgba(132, 204, 22, 0.3) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.9) !important;
-    overflow-y: auto !important;
-    max-height: 420px !important;
-    z-index: 999999 !important;
-    padding: 8px !important;
-    backdrop-filter: blur(20px) !important;
-  }
-
-  .search-results.hidden {
-    display: none !important;
-  }
-
-  /* ÉLÉMENTS DE LA LISTE DE PROPOSITIONS */
   .search-item {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    padding: 8px 10px !important;
-    border-radius: 10px !important;
-    cursor: pointer !important;
-    text-decoration: none !important;
-    color: #ffffff !important;
-    transition: background 0.15s ease !important;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #ffffff;
+    transition: background 0.15s ease;
   }
-
   .search-item:hover {
-    background: rgba(132, 204, 22, 0.12) !important;
+    background: rgba(132, 204, 22, 0.12);
   }
-
   .search-thumb {
-    width: 42px !important;
-    height: 56px !important;
-    border-radius: 6px !important;
-    object-fit: cover !important;
-    background: #202028 !important;
-    flex-shrink: 0 !important;
+    width: 42px;
+    height: 56px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #202028;
+    flex-shrink: 0;
   }
-
   .search-info {
-    flex: 1 !important;
-    min-width: 0 !important;
+    flex: 1;
+    min-width: 0;
   }
-
   .search-title {
-    font-size: 13.5px !important;
-    font-weight: 600 !important;
-    margin: 0 0 4px !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    color: #ffffff !important;
+    font-size: 13.5px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #ffffff;
   }
-
   .search-meta {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    font-size: 11.5px !important;
-    color: #9ca3af !important;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: #9ca3af;
   }
-
   .search-badge {
-    background: #84cc16 !important;
-    color: #0b0c10 !important;
-    padding: 2px 7px !important;
-    border-radius: 5px !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
+    background: #84cc16;
+    color: #0b0c10;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
   }
-
   .search-arrow {
-    color: #6b7280 !important;
-    font-size: 14px !important;
+    color: #6b7280;
+    font-size: 14px;
   }
 
-  /* BOUTON AVATAR */
+  /* AVATAR */
   .avatar {
     width: 36px !important;
     height: 36px !important;
@@ -181,12 +167,21 @@
       <button class="nav" data-filter="mylist">Ma liste</button>
     </nav>
     <div class="top-actions">
-      <div class="search-area" id="searchArea">
-        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="true">⌕</button>
-        <div class="search-wrap" id="searchWrap">
-          <input id="search" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu">
-          <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Résultats de recherche"></div>
+      <!-- Zone de recherche autonome -->
+      <div class="search-area">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="nxSearchInput" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu">
         </div>
+        <div id="nxSearchResults" class="search-dropdown"></div>
+
+        <!-- Éléments invisibles conservés pour empêcher tout plantage des scripts existants -->
+        <button id="searchToggle" style="display:none;"></button>
+        <input id="search" style="display:none;">
+        <div id="searchResults" style="display:none;"></div>
       </div>
       <button class="avatar" id="accountButton" title="Compte">S</button>
     </div>
@@ -294,29 +289,80 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
+
+<!-- MOTEUR DE RECHERCHE DIRECT AVEC PROPOSITIONS STYLE NAKA EN VERT LIME -->
 <script>
-  // Script direct pour déclencher les propositions dès la saisie
-  document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('search');
-    const results = document.getElementById('searchResults');
-    if (!input || !results) return;
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('nxSearchInput');
+  const dropdown = document.getElementById('nxSearchResults');
+  const TMDB_KEY = "38bcbe39bcbe4523bb413c6f4fb5a1cf"; // Clé publique TMDB
 
-    input.addEventListener('input', () => {
-      const q = input.value.trim().toLowerCase();
-      if (q.length < 2) {
-        results.classList.add('hidden');
-        return;
-      }
-      results.classList.remove('hidden');
-    });
+  if (!input || !dropdown) return;
 
-    document.addEventListener('click', (e) => {
-      if (!input.contains(e.target) && !results.contains(e.target)) {
-        results.classList.add('hidden');
+  let debounceTimer;
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const query = input.value.trim();
+
+    if (query.length < 2) {
+      dropdown.classList.remove('active');
+      dropdown.innerHTML = '';
+      return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&language=fr-FR&query=${encodeURIComponent(query)}&page=1&include_adult=false`);
+        const data = await res.json();
+        const results = (data.results || []).filter(item => item.media_type === 'movie' || item.media_type === 'tv').slice(0, 5);
+
+        if (results.length === 0) {
+          dropdown.innerHTML = '<div style="padding:12px;color:#71717a;font-size:13px;text-align:center;">Aucun contenu trouvé</div>';
+          dropdown.classList.add('active');
+          return;
+        }
+
+        dropdown.innerHTML = results.map(item => {
+          const isMovie = item.media_type === 'movie';
+          const title = isMovie ? item.title : item.name;
+          const date = isMovie ? item.release_date : item.first_air_date;
+          const year = date ? date.substring(0, 4) : '—';
+          const poster = item.poster_path 
+            ? `https://image.tmdb.org/t/p/w92${item.poster_path}` 
+            : 'https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA';
+          const typeLabel = isMovie ? 'Film' : 'Série';
+
+          return `
+            <div class="search-item" onclick="window.location.href='player-test.html?id=${item.id}&type=${item.media_type}'">
+              <img class="search-thumb" src="${poster}" alt="${title}">
+              <div class="search-info">
+                <div class="search-title">${title}</div>
+                <div class="search-meta">
+                  <span>${year}</span>
+                  <span class="search-badge">${typeLabel}</span>
+                </div>
+              </div>
+              <span class="search-arrow">→</span>
+            </div>
+          `;
+        }).join('');
+
+        dropdown.classList.add('active');
+      } catch (err) {
+        console.error("Erreur recherche :", err);
       }
-    });
+    }, 250);
   });
+
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.remove('active');
+    }
+  });
+});
 </script>
+
 <script src="app.js"></script>
 </body>
 </html>
