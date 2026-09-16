@@ -10,89 +10,96 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  /* Alignement de l'en-tête */
+  /* EN-TÊTE ET ACTIONS */
   .top-actions {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
-    position: relative !important;
+    gap: 14px !important;
   }
   .search-area {
     position: relative !important;
-    display: flex !important;
-    align-items: center !important;
   }
-  /* La loupe cliquable */
+  /* On masque l'ancien bouton loupe externe sans casser app.js */
   .search-toggle {
-    background: transparent !important;
-    border: none !important;
-    color: #a1a1aa !important;
-    font-size: 19px !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 36px !important;
-    height: 36px !important;
-    padding: 0 !important;
-    line-height: 1 !important;
-    transition: color 0.2s ease !important;
+    display: none !important;
   }
-  .search-toggle:hover {
-    color: #ffffff !important;
-  }
-  /* Le champ de saisie */
+
+  /* BARRE DE RECHERCHE DIRECTEMENT OUVERTE AVEC LOUPE INTÉGRÉE */
   .search-wrap {
+    position: relative !important;
     display: flex !important;
     align-items: center !important;
-    position: relative !important;
+    width: auto !important;
   }
+
+  .search-wrap::before {
+    content: "⌕";
+    position: absolute;
+    left: 14px;
+    font-size: 18px;
+    color: #71717a;
+    pointer-events: none;
+    line-height: 1;
+    z-index: 2;
+  }
+
   .search-wrap input {
-    height: 36px !important;
-    border-radius: 18px !important;
-    padding: 0 16px !important;
-    background: rgba(24, 24, 32, 0.9) !important;
-    border: 1px solid rgba(168, 85, 247, 0.45) !important;
+    height: 38px !important;
+    width: 250px !important;
+    border-radius: 20px !important;
+    padding: 0 16px 0 38px !important;
+    background: rgba(22, 23, 27, 0.9) !important;
+    border: 1px solid rgba(163, 230, 53, 0.3) !important; /* Vert Lime discret au repos */
     color: #ffffff !important;
     font-size: 13.5px !important;
     outline: none !important;
-    box-shadow: 0 0 12px rgba(168, 85, 247, 0.15) !important;
+    box-shadow: 0 0 10px rgba(163, 230, 53, 0.08) !important;
     transition: all 0.25s ease !important;
   }
+
   .search-wrap input:focus {
-    border-color: #a855f7 !important;
-    box-shadow: 0 0 16px rgba(168, 85, 247, 0.3) !important;
+    width: 280px !important;
+    border-color: #a3e635 !important; /* Vert Lime éclatant au focus */
+    box-shadow: 0 0 16px rgba(163, 230, 53, 0.35) !important;
+    background: rgba(18, 19, 23, 0.98) !important;
   }
-  /* Menu déroulant des résultats */
+
+  .search-wrap input::placeholder {
+    color: #71717a !important;
+    font-size: 13.5px !important;
+  }
+
+  /* RÉSULTATS DE RECHERCHE DÉROULANTS */
   .search-results {
     position: absolute !important;
     top: calc(100% + 10px) !important;
     right: 0 !important;
-    width: 320px !important;
-    background: #121319 !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    width: 330px !important;
+    background: #111216 !important;
+    border: 1px solid rgba(163, 230, 53, 0.25) !important;
     border-radius: 16px !important;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.85) !important;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.85) !important;
     overflow: hidden !important;
     z-index: 99999 !important;
     padding: 10px !important;
     backdrop-filter: blur(20px) !important;
   }
-  /* Avatar profil */
+
+  /* AVATAR DE COMPTE */
   .avatar {
     width: 36px !important;
     height: 36px !important;
     border-radius: 50% !important;
-    background: linear-gradient(135deg, #ec4899, #db2777) !important;
+    background: #1f2026 !important;
+    border: 1.5px solid #a3e635 !important; /* Contour Vert Lime */
     color: #ffffff !important;
     font-weight: 700 !important;
     font-size: 13px !important;
-    border: none !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    box-shadow: 0 2px 10px rgba(219, 39, 119, 0.35) !important;
+    box-shadow: 0 0 10px rgba(163, 230, 53, 0.2) !important;
     flex-shrink: 0 !important;
   }
 </style>
@@ -111,13 +118,13 @@
     </nav>
     <div class="top-actions">
       <div class="search-area" id="searchArea">
-        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="false">🔍</button>
+        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="true">⌕</button>
         <div class="search-wrap" id="searchWrap">
           <input id="search" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu">
           <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Résultats de recherche"></div>
         </div>
       </div>
-      <button class="avatar" id="accountButton" title="Compte">SO</button>
+      <button class="avatar" id="accountButton" title="Compte">S</button>
     </div>
   </header>
 
@@ -211,7 +218,7 @@
       <button class="auth-switch" id="authSwitch">Créer un compte</button>
     </div>
     <div id="authUser" class="hidden">
-      <div class="account-avatar" id="accountAvatar">SO</div>
+      <div class="account-avatar" id="accountAvatar">S</div>
       <div class="auth-kicker">MON ESPACE NEXORA</div>
       <h2 id="accountName">Compte NEXORA</h2>
       <p id="accountEmail" class="account-email"></p>
