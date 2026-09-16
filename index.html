@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
+  /* FORÇAGE AFFICHAGE ET ALIGNEMENT */
   .top-actions {
     display: flex !important;
     align-items: center !important;
@@ -20,23 +21,24 @@
     position: relative !important;
     display: flex !important;
     align-items: center !important;
-    background: transparent !important;
+    background: none !important;
     border: none !important;
-    box-shadow: none !important;
     padding: 0 !important;
   }
-  .search-toggle {
+  #searchToggle {
     display: none !important;
   }
-  .search-wrap {
-    position: relative !important;
+  /* On annule le display: none de style.css */
+  #searchWrap, .search-wrap {
     display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
     align-items: center !important;
-    background: transparent !important;
+    background: none !important;
     border: none !important;
-    box-shadow: none !important;
   }
-  .search-wrap::before {
+  #searchWrap::before {
     content: "⌕";
     position: absolute;
     left: 14px;
@@ -44,9 +46,10 @@
     color: #84cc16;
     pointer-events: none;
     line-height: 1;
-    z-index: 2;
+    z-index: 3;
   }
-  .search-wrap input {
+  #search {
+    display: block !important;
     height: 38px !important;
     width: 250px !important;
     border-radius: 20px !important;
@@ -56,17 +59,17 @@
     color: #ffffff !important;
     font-size: 13.5px !important;
     outline: none !important;
-    box-shadow: 0 0 10px rgba(132, 204, 22, 0.2) !important;
+    box-shadow: 0 0 10px rgba(132, 204, 22, 0.25) !important;
     transition: all 0.2s ease !important;
   }
-  .search-wrap input:focus {
+  #search:focus {
     width: 280px !important;
-    box-shadow: 0 0 16px rgba(132, 204, 22, 0.4) !important;
+    box-shadow: 0 0 16px rgba(132, 204, 22, 0.45) !important;
   }
-  .search-wrap input::placeholder {
+  #search::placeholder {
     color: #71717a !important;
   }
-  /* Le menu déroulant qui s'ouvre sous la barre */
+  /* BOÎTE DES RÉSULTATS DÉROULANTS */
   #searchResults {
     position: absolute !important;
     top: calc(100% + 10px) !important;
@@ -82,6 +85,10 @@
     padding: 8px !important;
     backdrop-filter: blur(20px) !important;
   }
+  #searchResults.hidden {
+    display: none !important;
+  }
+  /* AVATAR */
   .avatar {
     width: 36px !important;
     height: 36px !important;
@@ -114,7 +121,7 @@
     </nav>
     <div class="top-actions">
       <div class="search-area" id="searchArea">
-        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="false">⌕</button>
+        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="true">⌕</button>
         <div class="search-wrap" id="searchWrap">
           <input id="search" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu">
           <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Résultats de recherche"></div>
