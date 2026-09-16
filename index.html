@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07080b">
+<title>NEXORA — Streaming</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" id="topbar">
+    <a class="brand" href="#" id="brandHome" aria-label="NEXORA Accueil"><span>NEX</span><b>O</b><span>RA</span></a>
+    <nav id="nav" class="main-nav" aria-label="Navigation principale">
+      <button class="nav active" data-filter="all">Accueil</button>
+      <button class="nav" data-filter="film">Films</button>
+      <button class="nav" data-filter="serie">Séries</button>
+      <button class="nav" data-filter="anime">Animés</button>
+      <button class="nav" data-filter="new">Nouveautés</button>
+      <button class="nav" data-filter="mylist">Ma liste</button>
+    </nav>
+    <div class="top-actions">
+      <div class="search-area" id="searchArea">
+        <button class="search-toggle" id="searchToggle" aria-label="Rechercher" aria-expanded="false">⌕</button>
+        <div class="search-wrap" id="searchWrap">
+          <input id="search" placeholder="Rechercher…" autocomplete="off" aria-label="Rechercher un contenu">
+          <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Résultats de recherche"></div>
+        </div>
+      </div>
+      <button class="avatar" id="accountButton" title="Compte">S</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="hero">
+      <div class="hero-backdrop" id="heroBackdrop"></div>
+      <div class="hero-vignette"></div>
+      <div class="hero-content">
+        <div class="hero-kicker"><span class="live-dot"></span> À LA UNE SUR NEXORA</div>
+        <p class="hero-type" id="heroType">FILM · SCIENCE-FICTION</p>
+        <h1 id="heroTitle">PREMIER CONTACT</h1>
+        <div class="hero-meta" id="heroMeta"><span>2026</span><i>•</i><span>128 min</span><strong>8.7</strong></div>
+        <p class="hero-desc" id="heroDesc">Découvrez un catalogue pensé pour les grandes histoires, les univers puissants et les soirées cinéma.</p>
+        <div class="hero-actions">
+          <button class="btn btn-light" id="heroWatch"><span>▶</span> Regarder</button>
+          <button class="btn btn-glass" id="heroList"><span>＋</span> Ma liste</button>
+          <button class="info-btn" id="heroInfo" aria-label="Plus d'informations">i</button>
+        </div>
+      </div>
+      <div class="hero-progress"><span id="heroProgress"></span></div>
+      <div class="hero-scroll">DÉCOUVRIR <span>↓</span></div>
+    </section>
+
+    <div id="status" class="status"><span class="status-dot"></span> Connexion à NEXORA…</div>
+    <div id="content"></div>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden" aria-hidden="true">
+  <div class="modal-card">
+    <button class="close" id="closeModal" aria-label="Fermer">×</button>
+    <div id="modalBackdrop" class="modal-backdrop"></div>
+    <div class="modal-gradient"></div>
+    <div id="modalPoster" class="modal-poster"></div>
+    <div class="modal-info">
+      <div class="modal-label" id="modalType"></div>
+      <h2 id="modalTitle"></h2>
+      <div id="modalMeta" class="modal-meta"></div>
+      <p id="modalDesc"></p>
+      <div class="modal-actions">
+        <button class="btn btn-light" id="modalWatch">▶ Regarder</button>
+        <button class="btn btn-glass" id="modalList">＋ Ma liste</button>
+      </div>
+      <div id="modalRelated" class="modal-related"></div>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer"><div><strong>NEXORA</strong><span>Une expérience de streaming pensée pour les grandes histoires.</span></div><small>Les affiches et métadonnées de démonstration proviennent de TMDB. NEXORA n’est ni approuvé ni certifié par TMDB. Les vidéos doivent être fournies avec les droits de diffusion nécessaires.</small></footer>
+
+<div id="playerModal" class="player-modal hidden" aria-hidden="true">
+  <div class="player-shell">
+    <div class="player-head"><div class="player-title" id="playerTitle">Lecture NEXORA</div><button class="player-close" id="closePlayer" aria-label="Fermer">×</button></div>
+    <div class="player-stage">
+      <button class="player-fullscreen" id="playerFullscreen" type="button" aria-label="Plein écran" title="Plein écran">⛶</button>
+      <div class="player-sourcebar" id="playerSourceBar"></div>
+      <div class="player-episode-controls hidden" id="playerEpisodeControls">
+        <label>Saison <select id="playerSeasonSelect"></select></label>
+        <label>Épisode <select id="playerEpisodeSelect"></select></label>
+      </div>
+      <div class="player-episode-info hidden" id="playerEpisodeInfo">
+        <strong id="playerEpisodeInfoTitle">Épisode</strong>
+        <p id="playerEpisodeInfoDescription">Description de l’épisode</p>
+      </div>
+      <video id="playerVideo" controls playsinline preload="metadata"></video>
+      <div id="playerEmpty" class="player-empty hidden">
+        <div class="player-empty-inner">
+          <div id="playerPoster" class="player-empty-poster"></div>
+          <h3 id="playerEmptyTitle">Lecture non configurée</h3>
+          <p id="playerEmptyText">Cette fiche est prête pour la lecture. Ajoute dans Supabase une URL de vidéo que tu as les droits de diffuser dans le champ <strong>video_url</strong>.</p>
+          <div class="player-note">NEXORA ne fournit pas de film protégé par le droit d'auteur sans autorisation.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="authModal" class="modal hidden" aria-hidden="true">
+  <div class="auth-card">
+    <button class="close" id="closeAuth" aria-label="Fermer">×</button>
+    <div class="auth-brand">NEX<span>O</span>RA</div>
+    <div id="authGuest">
+      <div class="auth-kicker">VOTRE ESPACE</div>
+      <h2 id="authTitle">Connexion</h2>
+      <p class="auth-subtitle" id="authSubtitle">Retrouvez votre expérience NEXORA sur tous vos appareils.</p>
+      <div id="signupNameWrap" class="field hidden"><label for="authName">Prénom</label><input id="authName" type="text" autocomplete="given-name" placeholder="Votre prénom"></div>
+      <div class="field"><label for="authEmail">E-mail</label><input id="authEmail" type="email" autocomplete="email" placeholder="vous@exemple.com"></div>
+      <div class="field"><label for="authPassword">Mot de passe</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <div id="authMessage" class="auth-message"></div>
+      <button class="btn btn-light auth-submit" id="authSubmit">Se connecter</button>
+      <button class="auth-switch" id="authSwitch">Créer un compte</button>
+    </div>
+    <div id="authUser" class="hidden">
+      <div class="account-avatar" id="accountAvatar">S</div>
+      <div class="auth-kicker">MON ESPACE NEXORA</div>
+      <h2 id="accountName">Compte NEXORA</h2>
+      <p id="accountEmail" class="account-email"></p>
+      <button class="btn btn-glass account-logout" id="signOut">Se déconnecter</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

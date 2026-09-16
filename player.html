@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXORA Player</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #c2f82c; /* Vert lime NEXORA */
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+
+    .player-root {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .player-root.idle { cursor: none; }
+    .player-root.idle .ui-layer { opacity: 0; pointer-events: none; }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .click-surface {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+    }
+
+    .ui-layer {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: opacity 0.3s ease;
+      z-index: 10;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.85) 100%);
+    }
+
+    .top-bar, .bottom-bar, .settings-menu, .episodes-drawer, .next-ep-modal {
+      pointer-events: auto;
+    }
+
+    /* --- Barre Haute --- */
+    .top-bar {
+      padding: 24px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.15); }
+    .icon-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .ep-selector {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #d1d5db;
+    }
+    .ep-selector button {
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    /* --- Barre Basse --- */
+    .bottom-bar {
+      padding: 0 36px 24px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* --- Barre de progression --- */
+    .progress-container {
+      position: relative;
+      width: 100%;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    .progress-bg {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 4px;
+      position: relative;
+      overflow: visible;
+      transition: height 0.15s ease;
+    }
+    .progress-container:hover .progress-bg,
+    .progress-container.dragging .progress-bg {
+      height: 6px;
+    }
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: var(--primary-color);
+      border-radius: 4px;
+      width: 0%;
+      pointer-events: none;
+    }
+    .progress-thumb {
+      position: absolute;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%) scale(0);
+      width: 13px;
+      height: 13px;
+      background: var(--primary-color);
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(0,0,0,0.6);
+      transition: transform 0.15s ease;
+      pointer-events: none;
+    }
+    .progress-container:hover .progress-thumb,
+    .progress-container.dragging .progress-thumb {
+      transform: translateY(-50%) scale(1);
+    }
+
+    /* Bulle de temps dynamique au survol */
+    .progress-tooltip {
+      position: absolute;
+      bottom: 28px;
+      transform: translateX(-50%);
+      background: rgba(18, 18, 18, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 8px;
+      pointer-events: none;
+      white-space: nowrap;
+      display: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+    }
+    .progress-container:hover .progress-tooltip,
+    .progress-container.dragging .progress-tooltip {
+      display: block;
+    }
+
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .controls-left, .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* --- Volume --- */
+    .vol-wrapper {
+      display: inline-flex;
+      align-items: center;
+      height: 36px;
+    }
+    .vol-slider-wrap {
+      display: flex;
+      align-items: center;
+      max-width: 0;
+      opacity: 0;
+      overflow: visible;
+      margin-left: 0;
+      transition: max-width 0.25s ease, opacity 0.2s ease, margin-left 0.25s ease;
+    }
+    .vol-wrapper:hover .vol-slider-wrap {
+      max-width: 95px;
+      opacity: 1;
+      margin-left: 8px;
+    }
+    .vol-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 85px;
+      min-width: 85px;
+      height: 3px;
+      background: linear-gradient(to right, var(--primary-color) 100%, rgba(255, 255, 255, 0.28) 100%);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    .vol-slider::-webkit-slider-thumb, .vol-slider::-moz-range-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+    }
+    .time-display { font-size: 13px; color: #bbb; font-weight: 400; white-space: nowrap; }
+
+    /* --- Menu Paramètres --- */
+    .settings-menu {
+      position: absolute;
+      bottom: 80px;
+      right: 120px;
+      width: 310px;
+      background: linear-gradient(135deg, rgba(20, 24, 18, 0.97) 0%, rgba(14, 16, 12, 0.98) 100%);
+      border: 1px solid rgba(194, 248, 44, 0.12);
+      backdrop-filter: blur(18px);
+      border-radius: 14px;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.85);
+      display: none;
+      z-index: 50;
+      font-size: 14px;
+    }
+    .settings-menu.open { display: block; }
+    .menu-panel { padding: 16px; display: none; flex-direction: column; gap: 10px; }
+    .menu-panel.active { display: flex; }
+    .menu-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; padding-bottom: 8px; border-bottom: 1px solid rgba(194, 248, 44, 0.08); }
+    .back-btn-sub { background: rgba(255,255,255,0.08); border: none; color: #fff; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .back-btn-sub:hover { background: rgba(194, 248, 44, 0.15); color: var(--primary-color); }
+    .menu-title { font-weight: 700; font-size: 15px; }
+    .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: #e5e5e5; transition: background 0.15s; }
+    .menu-item:hover { background: rgba(194, 248, 44, 0.08); color: #fff; }
+    .menu-item .meta-val { color: #888; display: flex; align-items: center; gap: 4px; font-size: 13px; }
+    .menu-item.selected { color: #fff; font-weight: 600; }
+    .menu-item.selected .check-icon { color: var(--primary-color); display: inline-block; }
+    .check-icon { display: none; }
+
+    /* --- Tiroir Épisodes --- */
+    .episodes-drawer {
+      position: absolute;
+      top: 0;
+      right: -420px;
+      width: 390px;
+      height: 100%;
+      background: #151515;
+      border-left: 1px solid rgba(255,255,255,0.08);
+      z-index: 60;
+      transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -10px 0 35px rgba(0,0,0,0.85);
+      padding: 24px;
+    }
+    .episodes-drawer.open { right: 0; }
+    .drawer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .drawer-header h2 { font-size: 19px; font-weight: 700; }
+    
+    .season-selector-container { position: relative; margin-bottom: 18px; }
+    .season-active-bar { background: #202020; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .season-active-bar:hover { background: #262626; border-color: rgba(255,255,255,0.25); }
+    .season-dropdown-card { position: absolute; top: 52px; left: 0; right: 0; background: #1d1d1d; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; box-shadow: 0 12px 35px rgba(0,0,0,0.9); padding: 12px; display: none; flex-direction: column; z-index: 70; }
+    .season-dropdown-card.open { display: flex; }
+    .season-dropdown-header { font-size: 11px; font-weight: 700; letter-spacing: 0.8px; color: #777; padding: 4px 10px 8px 10px; }
+    .season-options-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .season-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; color: #ddd; }
+    .season-row:hover { background: #2a2a2a; }
+    .season-row.active { background: rgba(194, 248, 44, 0.08); color: var(--primary-color); font-weight: 600; }
+    
+    .ep-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+    .ep-item { display: flex; gap: 12px; cursor: pointer; padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid transparent; transition: background 0.2s, border-color 0.2s; }
+    .ep-item:hover { background: #262626; }
+    .ep-item.active { border-color: var(--primary-color); background: rgba(194, 248, 44, 0.08); }
+    .ep-thumb { width: 110px; height: 64px; background: #282828; border-radius: 4px; background-size: cover; background-position: center; flex-shrink: 0; }
+    .ep-meta { display: flex; flex-direction: column; justify-content: center; gap: 4px; overflow: hidden; }
+    .ep-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ep-tag { display: inline-block; align-self: flex-start; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+    .ep-tag.seen { color: #888; background: rgba(255, 255, 255, 0.08); }
+    .ep-tag.playing { color: var(--primary-color); background: rgba(194, 248, 44, 0.15); }
+
+    /* --- Modale Épisode Suivant --- */
+    .next-ep-modal {
+      position: absolute;
+      bottom: 120px;
+      right: 40px;
+      background: #141414;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 24px 36px 30px 36px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      z-index: 50;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.85);
+    }
+    .next-ep-modal.open { display: flex; }
+    .next-ep-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      position: relative;
+    }
+    .next-ep-close-left {
+      position: absolute;
+      left: -12px;
+      background: none;
+      border: none;
+      color: #777;
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+      transition: color 0.15s;
+    }
+    .next-ep-close-left:hover { color: #fff; }
+    .next-ep-header { color: #888; font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+
+    .next-ep-code { color: #fff; font-size: 22px; font-weight: 600; margin-top: -6px; }
+    
+    .next-ep-circle-wrap {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .next-ep-circle-wrap svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+    .next-ep-circle-wrap circle { fill: none; stroke-width: 4; stroke-linecap: round; }
+    .next-ep-circle-wrap .bg { stroke: rgba(255,255,255,0.1); }
+    .next-ep-circle-wrap .fill { 
+      stroke: var(--primary-color); 
+      stroke-dasharray: 188; 
+      stroke-dashoffset: 0; 
+      transition: stroke-dashoffset 1s linear; 
+    }
+    .next-ep-num { color: #fff; font-weight: 700; font-size: 18px; }
+
+    .next-ep-play-btn {
+      background: var(--primary-color);
+      color: #000;
+      border: none;
+      padding: 13px 26px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.1s;
+    }
+    .next-ep-play-btn:hover { transform: scale(1.03); }
+  </style>
+</head>
+<body>
+
+  <div class="player-root" id="playerRoot">
+    <video id="videoEl" playsinline></video>
+    <div class="click-surface" id="clickSurface"></div>
+
+    <div class="ui-layer" id="uiLayer">
+      <div class="top-bar">
+        <div class="top-left">
+          <button class="icon-btn" onclick="window.history.back()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </button>
+          <span id="contentTitle">Chargement...</span>
+          <div class="ep-selector" id="epSelectorGroup">
+            <button onclick="prevEp()">❮</button>
+            <span id="seasonEpCode">S01E01</span>
+            <button onclick="nextEp()">❯</button>
+          </div>
+        </div>
+        <div class="top-right">
+          <button class="icon-btn" id="infoBtn" onclick="window.history.back()" title="Fiche Nexora">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="bottom-bar">
+        <!-- Barre de lecture avec Tooltip au survol -->
+        <div class="progress-container" id="progressContainer">
+          <div class="progress-tooltip" id="progressTooltip">0:00</div>
+          <div class="progress-bg">
+            <div class="progress-fill" id="progressFill">
+              <div class="progress-thumb"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls-row">
+          <div class="controls-left">
+            <button class="icon-btn" id="playBtn" onclick="togglePlay()">
+              <svg id="playIconSvg" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+            </button>
+            <button class="icon-btn" onclick="seek(-10)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline><text x="12" y="15.5" font-size="7.5" fill="currentColor" stroke="none" text-anchor="middle" font-weight="700">10</text></svg>
+            </button>
+            <button class="icon-btn" onclick="seek(10)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><polyline points="21 3 21 8 16 8"></polyline><text x="12" y="15.5" font-size="7.5" fill="currentColor" stroke="none" text-anchor="middle" font-weight="700">10</text></svg>
+            </button>
+
+            <!-- Volume -->
+            <div class="vol-wrapper">
+              <button class="icon-btn" id="muteBtn" onclick="toggleMute()">
+                <svg id="volIconSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+              </button>
+              <div class="vol-slider-wrap">
+                <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.01" value="1">
+              </div>
+            </div>
+
+            <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+          </div>
+
+          <div class="controls-right">
+            <button class="icon-btn" id="episodesBtn" style="display:none;" onclick="toggleDrawer(event)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
+            </button>
+            <button class="icon-btn" id="settingsBtn" onclick="toggleSettings(event)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+            <button class="icon-btn" onclick="castScreen()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path><line x1="2" y1="20" x2="2.01" y2="20"></line></svg>
+            </button>
+            <button class="icon-btn" onclick="togglePip()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><rect x="12" y="11" width="7" height="6" rx="1"></rect></svg>
+            </button>
+            <button class="icon-btn" onclick="toggleFullscreen()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modale "Épisode Suivant" -->
+    <div class="next-ep-modal" id="nextEpModal">
+      <div class="next-ep-top-row">
+        <button class="next-ep-close-left" onclick="cancelNextEp()" title="Annuler">✕</button>
+        <span class="next-ep-header">Épisode suivant</span>
+      </div>
+      <div class="next-ep-code" id="nextEpModalCode">S01E02</div>
+      <div class="next-ep-circle-wrap">
+        <svg viewBox="0 0 64 64">
+          <circle class="bg" cx="32" cy="32" r="30"></circle>
+          <circle class="fill" id="nextEpCircle" cx="32" cy="32" r="30"></circle>
+        </svg>
+        <div class="next-ep-num" id="nextEpNum">10</div>
+      </div>
+      <button class="next-ep-play-btn" onclick="playNextEpNow()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+        Lire maintenant
+      </button>
+    </div>
+
+    <!-- Menu Paramètres -->
+    <div class="settings-menu" id="settingsMenu">
+      <div class="menu-panel active" id="panelMain">
+        <div class="menu-header"><div class="menu-title">Paramètres</div></div>
+        <div class="menu-item" onclick="openPanel('panelAudio')"><span>Piste audio</span><span class="meta-val" id="metaAudioLabel">Français ›</span></div>
+        <div class="menu-item" onclick="openPanel('panelSubs')"><span>Sous-titres</span><span class="meta-val" id="metaSubsLabel">Désactivés ›</span></div>
+        <div class="menu-item" onclick="openPanel('panelSpeed')"><span>Vitesse de lecture</span><span class="meta-val" id="metaSpeedLabel">Normal (1x) ›</span></div>
+      </div>
+      <div class="menu-panel" id="panelAudio"><div class="menu-header"><button class="back-btn-sub" onclick="openPanel('panelMain')">❮</button><div class="menu-title">Piste audio</div></div><div id="audioList"></div></div>
+      <div class="menu-panel" id="panelSubs"><div class="menu-header"><button class="back-btn-sub" onclick="openPanel('panelMain')">❮</button><div class="menu-title">Sous-titres</div></div><div id="subsList"></div></div>
+      <div class="menu-panel" id="panelSpeed">
+        <div class="menu-header"><button class="back-btn-sub" onclick="openPanel('panelMain')">❮</button><div class="menu-title">Vitesse de lecture</div></div>
+        <div class="menu-item" onclick="setSpeed(0.5, this)"><span>0.5x</span><span class="check-icon">✓</span></div>
+        <div class="menu-item" onclick="setSpeed(0.75, this)"><span>0.75x</span><span class="check-icon">✓</span></div>
+        <div class="menu-item selected" onclick="setSpeed(1, this)"><span>Normal (1x)</span><span class="check-icon">✓</span></div>
+        <div class="menu-item" onclick="setSpeed(1.25, this)"><span>1.25x</span><span class="check-icon">✓</span></div>
+        <div class="menu-item" onclick="setSpeed(1.5, this)"><span>1.5x</span><span class="check-icon">✓</span></div>
+        <div class="menu-item" onclick="setSpeed(1.75, this)"><span>1.75x</span><span class="check-icon">✓</span></div>
+        <div class="menu-item" onclick="setSpeed(2, this)"><span>2x</span><span class="check-icon">✓</span></div>
+      </div>
+    </div>
+
+    <!-- Tiroir Épisodes -->
+    <div class="episodes-drawer" id="episodesDrawer">
+      <div class="drawer-header"><h2>Épisodes</h2><button class="icon-btn" onclick="toggleDrawer(event)">✕</button></div>
+      <div class="season-selector-container">
+        <div class="season-active-bar" onclick="toggleSeasonDropdown(event)">
+          <div class="s-title"><span id="activeSeasonName">Saison 1</span><span class="s-count" id="activeSeasonCount">10 ép</span></div><span class="s-arrow" id="seasonArrow">⌄</span>
+        </div>
+        <div class="season-dropdown-card" id="seasonDropdownCard">
+          <div class="season-dropdown-header" id="seasonDropdownHeader">8 SAISONS</div><div class="season-options-list" id="seasonOptionsList"></div>
+        </div>
+      </div>
+      <div class="ep-list" id="epList"></div>
+    </div>
+  </div>
+
+  <script>
+    const TMDB_API_KEY = "f54de3d99b2ba3de7f8ee95d8b2437e5";
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tmdbId = urlParams.get('id');
+    const mediaType = urlParams.get('type') || 'movie';
+    let seasonNumber = parseInt(urlParams.get('season') || '1');
+    let episodeNumber = parseInt(urlParams.get('episode') || '1');
+
+    const video = document.getElementById('videoEl');
+    const playerRoot = document.getElementById('playerRoot');
+    const playBtn = document.getElementById('playBtn');
+    const playIconSvg = document.getElementById('playIconSvg');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressTooltip = document.getElementById('progressTooltip');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const volSlider = document.getElementById('volSlider');
+    const volIconSvg = document.getElementById('volIconSvg');
+    const settingsMenu = document.getElementById('settingsMenu');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const episodesDrawer = document.getElementById('episodesDrawer');
+    const episodesBtn = document.getElementById('episodesBtn');
+    const seasonDropdownCard = document.getElementById('seasonDropdownCard');
+    const seasonArrow = document.getElementById('seasonArrow');
+    const epSelectorGroup = document.getElementById('epSelectorGroup');
+    const contentTitle = document.getElementById('contentTitle');
+    const clickSurface = document.getElementById('clickSurface');
+
+    let globalSeriesData = null;
+    let hlsInstance = null;
+    let idleTimer = null;
+    let clickTimeout = null;
+    
+    let hasNextEp = false;
+    let nextSNum = null;
+    let nextEpNum = null;
+    
+    let nextEpTimer = null;
+    let countdownVal = 10;
+    let isModalShowing = false;
+    let hasCancelledNextEp = false;
+
+    let isScrubbing = false;
+    let wasPausedBeforeScrub = false;
+
+    if (!tmdbId) {
+      contentTitle.innerText = "Erreur : ID TMDB manquant";
+      throw new Error("ID requis");
+    }
+
+    function mettreAJourIconeVolume(val, isMuted) {
+      if (isMuted || val === 0) {
+        volIconSvg.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>`;
+      } else if (val <= 0.5) {
+        volIconSvg.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>`;
+      } else {
+        volIconSvg.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>`;
+      }
+    }
+
+    function updateVolumeStyle(val) {
+      const pct = val * 100;
+      volSlider.style.background = `linear-gradient(to right, var(--primary-color) ${pct}%, rgba(255, 255, 255, 0.28) ${pct}%)`;
+      mettreAJourIconeVolume(val, video.muted);
+    }
+
+    volSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      video.volume = val;
+      video.muted = (val === 0);
+      updateVolumeStyle(val);
+    });
+
+    function toggleMute() {
+      video.muted = !video.muted;
+      const targetVal = video.muted ? 0 : (video.volume || 1);
+      volSlider.value = targetVal;
+      updateVolumeStyle(targetVal);
+    }
+
+    window.addEventListener('click', (e) => {
+      if (settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
+        settingsMenu.classList.remove('open');
+      }
+      if (episodesDrawer.classList.contains('open') && !episodesDrawer.contains(e.target) && !episodesBtn.contains(e.target)) {
+        episodesDrawer.classList.remove('open');
+        seasonDropdownCard.classList.remove('open');
+        seasonArrow.innerText = '⌄';
+      }
+    });
+
+    function openPanel(panelId) {
+      document.querySelectorAll('.menu-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(panelId).classList.add('active');
+    }
+
+    function toggleSettings(e) {
+      if (e) e.stopPropagation();
+      settingsMenu.classList.toggle('open');
+      openPanel('panelMain');
+      episodesDrawer.classList.remove('open');
+    }
+
+    function toggleDrawer(e) {
+      if (e) e.stopPropagation();
+      episodesDrawer.classList.toggle('open');
+      settingsMenu.classList.remove('open');
+      seasonDropdownCard.classList.remove('open');
+      seasonArrow.innerText = '⌄';
+    }
+
+    function toggleSeasonDropdown(e) {
+      if (e) e.stopPropagation();
+      const isOpen = seasonDropdownCard.classList.toggle('open');
+      seasonArrow.innerText = isOpen ? '⌃' : '⌄';
+    }
+
+    function setSpeed(rate, el) {
+      video.playbackRate = rate;
+      document.querySelectorAll('#panelSpeed .menu-item').forEach(i => i.classList.remove('selected'));
+      el.classList.add('selected');
+      const label = rate === 1 ? 'Normal (1x)' : `${rate}x`;
+      document.getElementById('metaSpeedLabel').innerText = `${label} ›`;
+    }
+
+    function mettreAJourPistesAudio() {
+      const container = document.getElementById('audioList');
+      container.innerHTML = '';
+      if (!hlsInstance || !hlsInstance.audioTracks || hlsInstance.audioTracks.length === 0) {
+        container.innerHTML = `<div class="menu-item selected"><span>Français</span><span class="check-icon">✓</span></div>`;
+        return;
+      }
+      hlsInstance.audioTracks.forEach((track, index) => {
+        let nomLangue = track.name || track.lang || `Piste ${index + 1}`;
+        if (track.lang === 'fr' || nomLangue.toLowerCase().includes('fre') || nomLangue.toLowerCase().includes('fra')) nomLangue = 'Français';
+        if (track.lang === 'en' || nomLangue.toLowerCase().includes('eng')) nomLangue = 'English';
+        const isSelected = (hlsInstance.audioTrack === index);
+        const div = document.createElement('div');
+        div.className = `menu-item ${isSelected ? 'selected' : ''}`;
+        div.onclick = () => {
+          hlsInstance.audioTrack = index;
+          document.querySelectorAll('#audioList .menu-item').forEach(m => m.classList.remove('selected'));
+          div.classList.add('selected');
+          document.getElementById('metaAudioLabel').innerText = `${nomLangue} ›`;
+        };
+        div.innerHTML = `<span>${nomLangue}</span><span class="check-icon">✓</span>`;
+        container.appendChild(div);
+        if (isSelected) document.getElementById('metaAudioLabel').innerText = `${nomLangue} ›`;
+      });
+    }
+
+    function mettreAJourSousTitres() {
+      const container = document.getElementById('subsList');
+      container.innerHTML = '';
+      const isOffSelected = (!hlsInstance || hlsInstance.subtitleTrack === -1);
+      const offDiv = document.createElement('div');
+      offDiv.className = `menu-item ${isOffSelected ? 'selected' : ''}`;
+      offDiv.onclick = () => {
+        if (hlsInstance) hlsInstance.subtitleTrack = -1;
+        document.querySelectorAll('#subsList .menu-item').forEach(m => m.classList.remove('selected'));
+        offDiv.classList.add('selected');
+        document.getElementById('metaSubsLabel').innerText = `Désactivés ›`;
+      };
+      offDiv.innerHTML = `<span>Désactivés</span><span class="check-icon">✓</span>`;
+      container.appendChild(offDiv);
+
+      if (!hlsInstance || !hlsInstance.subtitleTracks) return;
+
+      hlsInstance.subtitleTracks.forEach((track, index) => {
+        let nomLangue = track.name || track.lang || `Sous-titre ${index + 1}`;
+        if (track.lang === 'fr' || nomLangue.toLowerCase().includes('fre') || nomLangue.toLowerCase().includes('fra')) nomLangue = 'Français';
+        if (track.lang === 'en' || nomLangue.toLowerCase().includes('eng')) nomLangue = 'English';
+        const isSelected = (hlsInstance.subtitleTrack === index);
+        const div = document.createElement('div');
+        div.className = `menu-item ${isSelected ? 'selected' : ''}`;
+        div.onclick = () => {
+          hlsInstance.subtitleTrack = index;
+          document.querySelectorAll('#subsList .menu-item').forEach(m => m.classList.remove('selected'));
+          div.classList.add('selected');
+          document.getElementById('metaSubsLabel').innerText = `${nomLangue} ›`;
+        };
+        div.innerHTML = `<span>${nomLangue}</span><span class="check-icon">✓</span>`;
+        container.appendChild(div);
+        if (isSelected) document.getElementById('metaSubsLabel').innerText = `${nomLangue} ›`;
+      });
+    }
+
+    async function recupererMetadataTMDB() {
+      try {
+        if (mediaType === 'movie') {
+          const res = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${TMDB_API_KEY}&language=fr-FR`);
+          const movie = await res.json();
+          contentTitle.innerText = movie.title || movie.original_title || "Film";
+        } else {
+          const seriesRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_API_KEY}&language=fr-FR`);
+          globalSeriesData = await seriesRes.json();
+          const validSeasons = (globalSeriesData.seasons || []).filter(s => s.season_number > 0);
+          document.getElementById('seasonDropdownHeader').innerText = `${validSeasons.length} SAISONS`;
+          remplirMenuSaisons(validSeasons);
+          await chargerSaisonSpecifique(seasonNumber, episodeNumber);
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    function remplirMenuSaisons(seasons) {
+      const list = document.getElementById('seasonOptionsList');
+      list.innerHTML = '';
+      seasons.forEach(s => {
+        const isActive = (s.season_number === seasonNumber);
+        const row = document.createElement('div');
+        row.className = `season-row ${isActive ? 'active' : ''}`;
+        row.onclick = (e) => { e.stopPropagation(); seasonDropdownCard.classList.remove('open'); seasonArrow.innerText = '⌄'; lancerEpisode(s.season_number, 1); };
+        row.innerHTML = `<span>${s.name || 'Saison ' + s.season_number}</span><div class="season-row-right"><span>${s.episode_count} ép</span>${isActive ? '<span>✓</span>' : ''}</div>`;
+        list.appendChild(row);
+      });
+    }
+
+    async function chargerSaisonSpecifique(sNum, epNum) {
+      const seasonRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${sNum}?api_key=${TMDB_API_KEY}&language=fr-FR`);
+      const seasonData = await seasonRes.json();
+
+      const ep = (seasonData.episodes || []).find(e => e.episode_number === epNum);
+      const epName = ep ? ep.name : `Épisode ${epNum}`;
+
+      contentTitle.innerText = `${globalSeriesData.name || 'Série'} : ${epName}`;
+      epSelectorGroup.style.display = 'inline-flex';
+      episodesBtn.style.display = 'inline-flex';
+      document.getElementById('seasonEpCode').innerText = `S${String(sNum).padStart(2, '0')}E${String(epNum).padStart(2, '0')}`;
+      document.getElementById('activeSeasonName').innerText = seasonData.name || `Saison ${sNum}`;
+      document.getElementById('activeSeasonCount').innerText = `${(seasonData.episodes || []).length} ép`;
+
+      const totalEps = (seasonData.episodes || []).length;
+      if (epNum < totalEps) {
+        hasNextEp = true; nextSNum = sNum; nextEpNum = epNum + 1;
+      } else {
+        const nextSeason = (globalSeriesData.seasons || []).find(s => s.season_number === sNum + 1);
+        if (nextSeason && nextSeason.episode_count > 0) {
+          hasNextEp = true; nextSNum = sNum + 1; nextEpNum = 1;
+        } else {
+          hasNextEp = false; nextSNum = null; nextEpNum = null;
+        }
+      }
+
+      afficherTiroirTMDB(globalSeriesData.name, seasonData.episodes || []);
+    }
+
+    function afficherTiroirTMDB(seriesName, episodes) {
+      const epList = document.getElementById('epList');
+      epList.innerHTML = '';
+      episodes.forEach(ep => {
+        const isActive = (ep.episode_number === episodeNumber);
+        const thumbUrl = ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : '';
+        const item = document.createElement('div');
+        item.className = `ep-item ${isActive ? 'active' : ''}`;
+        item.onclick = () => lancerEpisode(seasonNumber, ep.episode_number);
+        item.innerHTML = `<div class="ep-thumb" style="background-image: url('${thumbUrl}')"></div><div class="ep-meta"><span class="ep-name">E${String(ep.episode_number).padStart(2, '0')} · ${ep.name}</span><span class="ep-tag ${isActive ? 'playing' : 'seen'}">${isActive ? '▶ En lecture' : 'Épisode ' + ep.episode_number}</span></div>`;
+        epList.appendChild(item);
+      });
+    }
+
+    function lancerEpisode(s, ep) {
+      seasonNumber = s; episodeNumber = ep;
+      episodesDrawer.classList.remove('open');
+      const validSeasons = (globalSeriesData.seasons || []).filter(s => s.season_number > 0);
+      remplirMenuSaisons(validSeasons);
+      chargerSaisonSpecifique(seasonNumber, episodeNumber);
+      loadStream();
+    }
+
+    function prevEp() { if (episodeNumber > 1) lancerEpisode(seasonNumber, episodeNumber - 1); }
+    function nextEp() { if (hasNextEp) lancerEpisode(nextSNum, nextEpNum); }
+
+    function declencherCompteARebours() {
+      if (!hasNextEp) return;
+      isModalShowing = true;
+      countdownVal = 10;
+      document.getElementById('nextEpModalCode').innerText = `S${String(nextSNum).padStart(2, '0')}E${String(nextEpNum).padStart(2, '0')}`;
+      document.getElementById('nextEpModal').classList.add('open');
+      
+      const circle = document.getElementById('nextEpCircle');
+      circle.style.strokeDashoffset = "0";
+
+      nextEpTimer = setInterval(() => {
+        countdownVal--;
+        document.getElementById('nextEpNum').innerText = countdownVal;
+        circle.style.strokeDashoffset = 188 - (countdownVal / 10) * 188;
+        if (countdownVal <= 0) playNextEpNow();
+      }, 1000);
+    }
+
+    function cancelNextEp() {
+      clearInterval(nextEpTimer);
+      hasCancelledNextEp = true;
+      document.getElementById('nextEpModal').classList.remove('open');
+    }
+
+    function playNextEpNow() {
+      clearInterval(nextEpTimer);
+      document.getElementById('nextEpModal').classList.remove('open');
+      if (hasNextEp) lancerEpisode(nextSNum, nextEpNum);
+    }
+
+    clickSurface.addEventListener('click', () => {
+      if (clickTimeout === null) {
+        clickTimeout = setTimeout(() => { togglePlay(); clickTimeout = null; }, 250);
+      } else {
+        clearTimeout(clickTimeout); clickTimeout = null; toggleFullscreen();
+      }
+    });
+
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "0:00";
+      const totalSec = Math.floor(seconds);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      return (video.duration >= 3600 || h > 0) ? `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}` : `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    video.addEventListener('timeupdate', () => {
+      if (!isScrubbing) {
+        const pct = (video.currentTime / video.duration) * 100;
+        progressFill.style.width = pct + '%';
+        timeDisplay.innerText = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+      }
+
+      // Déclenchement exactement 30 secondes avant la fin
+      if (mediaType === 'tv' && hasNextEp && !isModalShowing && !hasCancelledNextEp) {
+        if (video.duration > 0 && (video.duration - video.currentTime) <= 30 && (video.duration - video.currentTime) > 0) {
+          declencherCompteARebours();
+        }
+      }
+    });
+
+    // --- Gestion du curseur et Tooltip sur la barre ---
+    function updateProgressFromEvent(e) {
+      const rect = progressContainer.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      progressFill.style.width = (pos * 100) + '%';
+      if (video.duration) {
+        video.currentTime = pos * video.duration;
+        timeDisplay.innerText = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+      }
+    }
+
+    function updateTooltipPosition(e) {
+      const rect = progressContainer.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const targetTime = pos * (video.duration || 0);
+
+      progressTooltip.style.left = `${pos * 100}%`;
+      progressTooltip.innerText = formatTime(targetTime);
+    }
+
+    progressContainer.addEventListener('mousemove', updateTooltipPosition);
+
+    progressContainer.addEventListener('mousedown', (e) => {
+      isScrubbing = true;
+      wasPausedBeforeScrub = video.paused;
+      video.pause();
+      progressContainer.classList.add('dragging');
+      updateProgressFromEvent(e);
+      updateTooltipPosition(e);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isScrubbing) {
+        updateProgressFromEvent(e);
+        updateTooltipPosition(e);
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isScrubbing) {
+        isScrubbing = false;
+        progressContainer.classList.remove('dragging');
+        if (!wasPausedBeforeScrub) {
+          video.play();
+        }
+      }
+    });
+
+    function togglePlay() {
+      if (video.paused) {
+        video.play();
+        playIconSvg.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
+      } else {
+        video.pause();
+        playIconSvg.innerHTML = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
+      }
+    }
+
+    function seek(sec) { video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + sec)); }
+    async function togglePip() { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (document.pictureInPictureEnabled) await video.requestPictureInPicture(); }
+    function toggleFullscreen() { if (!document.fullscreenElement) playerRoot.requestFullscreen(); else document.exitFullscreen(); }
+    function castScreen() { if (video.remote && video.remote.state !== 'disconnected') video.remote.prompt(); }
+
+    function resetIdle() {
+      playerRoot.classList.remove('idle');
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        if (!video.paused && !isScrubbing && !settingsMenu.classList.contains('open') && !episodesDrawer.classList.contains('open')) {
+          playerRoot.classList.add('idle');
+        }
+      }, 3000);
+    }
+    window.addEventListener('mousemove', resetIdle);
+    window.addEventListener('click', resetIdle);
+
+    function startHls(url) {
+      if (hlsInstance) hlsInstance.destroy();
+      if (Hls.isSupported()) {
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(url);
+        hlsInstance.attachMedia(video);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          mettreAJourPistesAudio(); 
+          mettreAJourSousTitres();
+          video.play();
+          playIconSvg.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
+        });
+        hlsInstance.on(Hls.Events.AUDIO_TRACK_LOADED, mettreAJourPistesAudio);
+        hlsInstance.on(Hls.Events.SUBTITLE_TRACK_LOADED, mettreAJourSousTitres);
+      } else { // Fallback Safari HLS ou direct MP4
+        video.src = url;
+        video.play().catch(()=>{});
+      } if (false) {
+        video.src = url;
+        video.play();
+        playIconSvg.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
+      }
+    }
+
+    async function loadStream() {
+      if (nextEpTimer) clearInterval(nextEpTimer);
+      isModalShowing = false;
+      hasCancelledNextEp = false;
+      document.getElementById('nextEpModal').classList.remove('open');
+
+      // Si une URL de vidéo directe est transmise (depuis Supabase / URL param)
+      const directUrl = urlParams.get('video_url');
+      if (directUrl) {
+        startHls(directUrl);
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/extract?tmdb_id=${tmdbId}&type=${mediaType}&season=${seasonNumber}&episode=${episodeNumber}`);
+        const data = await res.json();
+        if (data.success && data.streamUrl) startHls(data.streamUrl);
+      } catch (e) { console.error(e); }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateVolumeStyle(1);
+      recupererMetadataTMDB();
+      loadStream();
+    });
+  </script>
+</body>
+</html>
