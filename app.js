@@ -604,11 +604,10 @@ $("searchToggle").addEventListener("click",()=>{
 });
 
 // ==========================================
-// RECHERCHE DYNAMIQUE TMDB + SUPABASE
+// RECHERCHE INSTANTANÉE DIRECTE & FIABLE
 // ==========================================
 
 let searchDebounceTimer;
-let searchRequestId = 0;
 
 async function renderSearchResults(query) {
   const box = $("searchResults");
@@ -616,250 +615,100 @@ async function renderSearchResults(query) {
 
   const q = String(query || "").trim().toLowerCase();
 
-  // Annule les anciennes recherches distantes
-  searchRequestId++;
-  const currentRequestId = searchRequestId;
-
   if (!q || q.length < 2) {
     box.innerHTML = "";
-    box.classList.add("hidden");
     box.style.display = "none";
     return;
   }
 
-  // Recherche immédiate dans le catalogue déjà chargé
-  const matches = contents.filter(item => {
+  // 1. Recherche instantanée dans TOUS les catalogues locaux (films, séries démo, animés)
+  const fullLocalPool = [...contents, ...demoCatalog, ...extraCatalog].map(normalizeContent);
+  const localMatches = fullLocalPool.filter(item => {
     const title = String(item.title || "").toLowerCase();
-    const originalTitle = String(
-      item.original_title || item.original_name || ""
-    ).toLowerCase();
-
-    return title.includes(q) || originalTitle.includes(q);
+    const orig = String(item.original_title || item.original_name || "").toLowerCase();
+    return title.includes(q) || orig.includes(q);
   });
 
   // Affiche immédiatement les résultats locaux
-  displaySearchDropdown(matches, box);
+  displaySearchDropdown(localMatches, box);
 
-  // Recherche TMDB après un court délai
+  // 2. Recherche distante dans la table Supabase "contents" (sans Edge Function qui crash)
   clearTimeout(searchDebounceTimer);
-
   searchDebounceTimer = setTimeout(async () => {
     try {
-      const { data, error } = await db.functions.invoke(
-        "nexora-tmdb-details",
-        {
-          body: {
-            action: "search",
-            query: q
-          }
-        }
-      );
+      const { data, error } = await db.from("contents")
+        .select("*")
+        .ilike("title", `%${q}%`)
+        .limit(8);
 
-      if (error) {
-        console.warn("Erreur recherche TMDB :", error);
-        return;
+      if (!error && Array.isArray(data) && data.length) {
+        const distant = data.map(normalizeContent).filter(isAllowedContent);
+        const map = new Map();
+        [...localMatches, ...distant].forEach(item => {
+          const key = String(item.tmdb_id || item.id);
+          if (!map.has(key)) map.set(key, item);
+        });
+        displaySearchDropdown([...map.values()], box);
       }
-
-      // Ignore la réponse si l'utilisateur a déjà changé sa recherche
-      if (currentRequestId !== searchRequestId) return;
-
-      if (!data || !Array.isArray(data.results)) {
-        return;
-      }
-
-      const tmdbMatches = data.results
-        .filter(item => item && (item.title || item.name))
-        .map(item => ({
-          id: `tmdb-${item.media_type || "movie"}-${item.id}`,
-          tmdb_id: item.id,
-          title: item.title || item.name,
-          original_title: item.original_title || item.original_name || "",
-          type: item.media_type === "tv" ? "serie" : "film",
-          year: (
-            item.release_date ||
-            item.first_air_date ||
-            ""
-          ).substring(0, 4),
-          poster_url: item.poster_path
-            ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
-            : null
-        }));
-
-      // Fusion des résultats locaux et TMDB sans doublons
-      const resultMap = new Map();
-
-      [...matches, ...tmdbMatches].forEach(item => {
-        const key = String(item.tmdb_id || item.id);
-
-        if (!resultMap.has(key)) {
-          resultMap.set(key, item);
-        }
-      });
-
-      displaySearchDropdown(
-        [...resultMap.values()],
-        box
-      );
-
-    } catch (error) {
-      console.warn("Recherche distante TMDB :", error);
+    } catch (e) {
+      console.warn("Recherche Supabase distante :", e);
     }
-  }, 250);
+  }, 150);
 }
 
 function displaySearchDropdown(results, box) {
   if (!box) return;
 
   if (!results || !results.length) {
-    box.innerHTML = `
-      <div
-        style="
-          padding: 20px;
-          color: #71717a;
-          font-size: 13px;
-          text-align: center;
-        "
-      >
-        Aucun résultat pour cette recherche.
-      </div>
-    `;
-
-    box.classList.remove("hidden");
+    box.innerHTML = `<div style="padding: 18px; color: #71717a; font-size: 13px; text-align: center;">Aucun résultat pour cette recherche.</div>`;
     box.style.display = "block";
     return;
   }
 
-  const items = results.slice(0, 6);
+  // Élimine les doublons par ID
+  const uniqueItems = [];
+  const seen = new Set();
+  for (const item of results) {
+    const key = String(item.tmdb_id || item.id);
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueItems.push(item);
+    }
+  }
+
+  const items = uniqueItems.slice(0, 6);
 
   box.innerHTML = items.map(item => {
     const poster = imageUrl(item, "poster");
     const year = item.year || "—";
     const typeLabel = labelType(item.type);
-
-    const posterSource = poster
-      ? escapeAttr(poster)
-      : "https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA";
+    const posterSource = poster ? escapeAttr(poster) : "https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA";
 
     return `
-      <div
-        class="search-item"
-        data-search-id="${escapeAttr(item.id)}"
-        role="option"
-        tabindex="0"
-        style="
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          width: 100%;
-          padding: 10px 12px;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: background 0.15s ease;
-          box-sizing: border-box;
-        "
-      >
-        <img
-          src="${posterSource}"
-          alt=""
-          loading="lazy"
-          decoding="async"
-          style="
-            width: 42px;
-            height: 58px;
-            border-radius: 7px;
-            object-fit: cover;
-            background: #202028;
-            flex-shrink: 0;
-          "
-          onerror="this.onerror=null;this.src='https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA';"
-        >
-
-        <div
-          style="
-            flex: 1;
-            min-width: 0;
-            overflow: hidden;
-          "
-        >
-          <div
-            style="
-              color: #ffffff;
-              font-size: 14px;
-              font-weight: 700;
-              line-height: 1.3;
-              margin-bottom: 7px;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            "
-          >
+      <div class="search-item" data-search-id="${escapeAttr(item.id)}" role="option" tabindex="0" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; border-radius: 10px; cursor: pointer; transition: background 0.15s ease; box-sizing: border-box;">
+        <img src="${posterSource}" alt="" loading="lazy" decoding="async" style="width: 42px; height: 58px; border-radius: 7px; object-fit: cover; background: #202028; flex-shrink: 0;" onerror="this.onerror=null;this.src='https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA';">
+        <div style="flex: 1; min-width: 0; overflow: hidden;">
+          <div style="color: #ffffff; font-size: 13.5px; font-weight: 700; line-height: 1.3; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             ${escapeHtml(item.title || "Sans titre")}
           </div>
-
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              flex-wrap: wrap;
-              color: #9ca3af;
-              font-size: 12px;
-              line-height: 1;
-            "
-          >
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: #9ca3af; font-size: 11.5px; line-height: 1;">
             <span>${escapeHtml(year)}</span>
-
-            <span
-              style="
-                display: inline-flex;
-                align-items: center;
-                background: ${
-                  item.type === "film"
-                    ? "#7137d1"
-                    : item.type === "anime"
-                      ? "#e05a2a"
-                      : "#9c1db5"
-                };
-                color: #ffffff;
-                padding: 5px 9px;
-                border-radius: 7px;
-                font-size: 10px;
-                font-weight: 800;
-                text-transform: uppercase;
-                line-height: 1;
-              "
-            >
+            <span style="display: inline-flex; align-items: center; background: #84cc16; color: #07080b; padding: 3px 7px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; line-height: 1;">
               ${escapeHtml(typeLabel)}
             </span>
           </div>
         </div>
-
-        <span
-          style="
-            color: #52525b;
-            font-size: 25px;
-            font-weight: 300;
-            line-height: 1;
-            flex-shrink: 0;
-          "
-        >
-          ›
-        </span>
+        <span style="color: #6b7280; font-size: 20px; font-weight: 300; line-height: 1; flex-shrink: 0;">›</span>
       </div>
     `;
   }).join("");
 
-  box.classList.remove("hidden");
   box.style.display = "block";
-  box.style.visibility = "visible";
-  box.style.opacity = "1";
-  box.style.pointerEvents = "auto";
 
   box.querySelectorAll(".search-item").forEach(element => {
     element.addEventListener("mouseenter", () => {
-      element.style.background = "rgba(132, 204, 22, 0.10)";
+      element.style.background = "rgba(132, 204, 22, 0.12)";
     });
-
     element.addEventListener("mouseleave", () => {
       element.style.background = "transparent";
     });
@@ -867,15 +716,12 @@ function displaySearchDropdown(results, box) {
     const openResult = () => {
       const id = element.getAttribute("data-search-id");
       if (!id) return;
-
-      box.classList.add("hidden");
       box.style.display = "none";
       $("search").value = "";
       openDetail(id);
     };
 
     element.addEventListener("click", openResult);
-
     element.addEventListener("keydown", event => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -891,7 +737,6 @@ $("search")?.addEventListener("input", event => {
 
 $("search")?.addEventListener("keydown", event => {
   const box = $("searchResults");
-
   if (event.key === "Enter") {
     const firstResult = box?.querySelector("[data-search-id]");
     if (firstResult) {
@@ -899,13 +744,11 @@ $("search")?.addEventListener("keydown", event => {
       firstResult.click();
     }
   }
-
   if (event.key === "Escape") {
     event.preventDefault();
     $("search").value = "";
     if (box) {
       box.innerHTML = "";
-      box.classList.add("hidden");
       box.style.display = "none";
     }
     $("search").blur();
@@ -916,7 +759,6 @@ document.addEventListener("click", event => {
   if (!event.target.closest?.("#searchArea")) {
     const box = $("searchResults");
     if (box) {
-      box.classList.add("hidden");
       box.style.display = "none";
     }
   }
