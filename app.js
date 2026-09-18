@@ -5,46 +5,13 @@ const brandHome = document.getElementById("brandHome");
 const $ = id => document.getElementById(id);
 let contents=[], currentFilter="all", selected=null, currentUser=null, authMode="login";
 
-// Catalogue de démonstration
-const demoCatalog = [
-  {id:9001,title:"Dune : Deuxième Partie",type:"film",year:2024,genre:"Science-fiction",rating:8.6,duration_minutes:166,poster_url:"https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/7H8w5D3W5W3g5q6Q0n9o4dQvY1.jpg",is_featured:true,is_new:true,description:"Paul Atréides s'unit aux Fremen et prépare sa revanche sur ceux qui ont détruit sa famille."},
-  {id:9002,title:"Interstellar",type:"film",year:2014,genre:"Science-fiction",rating:8.7,duration_minutes:169,poster_url:"https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg",description:"Une équipe traverse un trou de ver pour trouver un nouvel espoir pour l'humanité."},
-  {id:9003,title:"Inception",type:"film",year:2010,genre:"Science-fiction",rating:8.8,duration_minutes:148,poster_url:"https://image.tmdb.org/t/p/w500/edv5CZvWj09upOsy2Y6IwDhK8bt.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg",description:"Un voleur spécialisé dans l'extraction de secrets s'aventure dans les rêves les plus profonds."},
-  {id:9004,title:"Oppenheimer",type:"film",year:2023,genre:"Drame · Histoire",rating:8.6,duration_minutes:180,poster_url:"https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/f1AQhx6ZfGhPZFTVKgxG91Phwos.jpg",description:"Le parcours du scientifique à la tête du projet Manhattan et les conséquences de ses travaux."},
-  {id:9005,title:"Top Gun : Maverick",type:"film",year:2022,genre:"Action",rating:8.2,duration_minutes:131,poster_url:"https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/odJ4hx6g6vBt4lBWKFD1tI8Fq5C.jpg",description:"Après plus de trente ans de service, Maverick revient former une nouvelle génération de pilotes."},
-  {id:9006,title:"The Batman",type:"film",year:2022,genre:"Action · Thriller",rating:7.8,duration_minutes:176,poster_url:"https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/b0PlSFdDwbyK8R8R7r9z6YhZ0mA.jpg",description:"Un Batman encore jeune enquête sur une série de crimes qui révèle une corruption profonde à Gotham."},
-  {id:9007,title:"Spider-Man : No Way Home",type:"film",year:2021,genre:"Action · Fantastique",rating:8.0,duration_minutes:148,poster_url:"https://image.tmdb.org/t/p/w500/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/14QbnygCuTO0vl7CAFmPf1fgZfV.jpg",description:"Peter Parker demande de l'aide pour faire oublier son identité secrète, mais le multivers s'en mêle."},
-  {id:9008,title:"Titanic",type:"film",year:1997,genre:"Drame · Romance",rating:7.9,duration_minutes:194,poster_url:"https://image.tmdb.org/t/p/w500/9xjZS2rlVxm8SFx1l8KxWc0R7nG.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/7B2tHfQdK6L7jvKf8M8G9cY3r5P.jpg",description:"Une histoire d'amour née à bord du paquebot le plus célèbre de l'histoire."},
-  {id:9009,title:"Avatar : La Voie de l’eau",type:"film",year:2022,genre:"Science-fiction · Aventure",rating:7.6,duration_minutes:192,poster_url:"https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg",description:"Jake Sully et Neytiri construisent leur famille et trouvent refuge auprès d’un nouveau peuple de Pandora."},
-  {id:9010,title:"Gladiator II",type:"film",year:2024,genre:"Action · Drame",rating:6.7,duration_minutes:148,poster_url:"https://image.tmdb.org/t/p/w500/2cxhvwyEwRlysAmRH4iodkvo0z5.jpg",description:"Des années après le règne de Maximus, une nouvelle génération entre dans l’arène et doit affronter les ambitions de Rome."}
-];
 
-const extraCatalog = [
-  {id:9101,title:"Stranger Things",type:"serie",year:2016,genre:"Fantastique · Thriller",rating:8.6,poster_url:"https://image.tmdb.org/t/p/w500/x2LSRK2Cm7MZhjluni1msVJ3wDF.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/49WJfeN0moxb9IPfGn8AIqMGskD.jpg",description:"À Hawkins, un groupe d'adolescents se retrouve au cœur d'un mystère surnaturel qui dépasse tout ce qu'ils imaginaient.",is_featured:true},
-  {id:9102,title:"Breaking Bad",type:"serie",year:2008,genre:"Drame · Crime",rating:9.5,poster_url:"https://image.tmdb.org/t/p/w500/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg",description:"Un professeur de chimie se lance dans une entreprise clandestine qui va bouleverser sa vie et celle de ses proches.",is_featured:true},
-  {id:9103,title:"Game of Thrones",type:"serie",year:2011,genre:"Drame · Fantasy",rating:9.2,poster_url:"https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/suopoADq0k8YZr4dQXcX1R1h2jD.jpg",description:"Dans un monde où les familles nobles se disputent le Trône de Fer, alliances et trahisons décident du destin des royaumes.",is_new:true},
-  {id:9104,title:"The Last of Us",type:"serie",year:2023,genre:"Drame · Post-apocalyptique",rating:8.7,poster_url:"https://image.tmdb.org/t/p/w500/uKvVjHNqB5VmOrdxqAt2F7J78ED.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/9n2tJBplPbgR2ca05hS5CK9wE9Q.jpg",description:"Vingt ans après l'effondrement de la civilisation, Joel doit escorter Ellie à travers une Amérique dévastée.",is_new:true},
-  {id:9105,title:"Mercredi",type:"serie",year:2022,genre:"Comédie · Fantastique",rating:8.1,poster_url:"https://image.tmdb.org/t/p/w500/9PFonBhy4cQy7Jz20NpMygczOkv.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/iHSwvRVsRyxpX7FE7GbviaDvgGZ.jpg",description:"Mercredi Addams enquête sur une série de mystères inquiétants au sein de son étrange académie.",is_featured:true},
-  {id:9106,title:"La Casa de Papel",type:"serie",year:2017,genre:"Crime · Thriller",rating:8.2,poster_url:"https://image.tmdb.org/t/p/w500/reEMJA1uzscCbkpeRJeTT2bjqUp.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/AbR2eYb8J9H3QY1fJkJ6f7w4xkB.jpg",description:"Un mystérieux stratège réunit une équipe de braqueurs pour réaliser un plan hors norme.",is_featured:true},
-  {id:9201,title:"John Wick : Chapitre 4",type:"film",year:2023,genre:"Action · Thriller",rating:8.0,duration_minutes:169,poster_url:"https://image.tmdb.org/t/p/w500/vZloFAK7NmvMGKE7VkF5UHaz0I.jpg",description:"John Wick découvre une voie pour vaincre la Grande Table, mais doit affronter de nouveaux ennemis."},
-  {id:9202,title:"Scream",type:"film",year:2022,genre:"Horreur · Thriller",rating:6.7,duration_minutes:114,poster_url:"https://image.tmdb.org/t/p/w500/4qIV5WXP1xQvpPAHmgVxCmxvPh6.jpg",description:"Un nouveau tueur Ghostface replonge Woodsboro dans la terreur."},
-  {id:9203,title:"65 : La Terre d'avant",type:"film",year:2023,genre:"Science-fiction · Aventure",rating:6.3,duration_minutes:93,poster_url:"https://image.tmdb.org/t/p/w500/rzRb63TldOKdKydCvWJM8B6EkPM.jpg",description:"Deux survivants d'un vaisseau écrasé sur Terre affrontent un monde préhistorique hostile."},
-  {id:9204,title:"Supercell",type:"film",year:2023,genre:"Action · Drame",rating:6.4,duration_minutes:100,poster_url:"https://image.tmdb.org/t/p/w500/gbGHezV6yrhua0KfAgwrknSOiIY.jpg",description:"Un chasseur de tempêtes se retrouve au cœur de la supercellule la plus dangereuse jamais observée."},
-  {id:9205,title:"Kill Boksoon",type:"film",year:2023,genre:"Action · Thriller",rating:6.8,duration_minutes:137,poster_url:"https://image.tmdb.org/t/p/w500/taYgn3RRpCGlTGdaGQvnSIOzXFy.jpg",description:"Tueuse réputée au travail, mère célibataire à la maison : les deux mondes de Boksoon entrent en collision."},
-  {id:9301,title:"The Mandalorian",type:"serie",year:2019,genre:"Science-fiction · Aventure",rating:8.5,poster_url:"https://image.tmdb.org/t/p/w500/eU1i6eHXlzMOlEq0ku1Rzq7Y4wA.jpg",description:"Un chasseur de primes solitaire parcourt les confins de la galaxie après la chute de l'Empire."},
-  {id:9302,title:"Invincible",type:"serie",year:2021,genre:"Animation · Action",rating:8.7,poster_url:"https://image.tmdb.org/t/p/w500/lxVS24ZhG3WQf3IMbkFIg6olT6A.jpg",description:"Mark Grayson découvre ses pouvoirs et apprend que devenir un héros est bien plus compliqué qu'il ne l'imaginait."},
-  {id:9303,title:"Heartstopper",type:"serie",year:2022,genre:"Drame · Romance",rating:8.7,poster_url:"https://image.tmdb.org/t/p/w500/p0AtD0ivSlHq2MHY6JFgyhNqAQY.jpg",description:"Charlie et Nick découvrent qu'une amitié inattendue pourrait devenir quelque chose de plus."},
-  {id:9304,title:"Avatar : Le dernier maître de l'air",type:"serie",year:2005,genre:"Animation · Aventure",rating:8.7,poster_url:"https://image.tmdb.org/t/p/w500/cHFZA8Tlv03nKTGXhLOYOLtqoSm.jpg",description:"Dans un monde déchiré par la guerre, Aang doit maîtriser les éléments et ramener la paix."},
-  {id:9401,title:"Demon Slayer : Kimetsu no Yaiba",type:"anime",year:2019,genre:"Action · Fantastique",rating:8.7,poster_url:"https://image.tmdb.org/t/p/w500/xUfRZu2mi8jH6SzQEJGP6tjBuYj.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/nTvM4mhqNlHIvUkI1gVnW6XP7GG.jpg",description:"Tanjiro rejoint les pourfendeurs de démons pour sauver sa sœur devenue démon."},
-  {id:9402,title:"My Hero Academia",type:"anime",year:2016,genre:"Action · Animation",rating:8.7,poster_url:"https://image.tmdb.org/t/p/w500/ivOLM47yJt90P19RH1NvJrAJz9F.jpg",backdrop_url:"https://image.tmdb.org/t/p/w1280/jsXKG9uppnPrhqFNhImllyCfLhl.jpg",description:"Izuku rêve de devenir un héros dans un monde où la plupart des humains possèdent un super-pouvoir."},
-  {id:9403,title:"Fullmetal Alchemist: Brotherhood",type:"anime",year:2009,genre:"Action · Fantastique",rating:8.7,poster_url:"https://image.tmdb.org/t/p/w500/8H4ej2NpujYVBPsW2smmzC8d2xU.jpg",description:"Edward et Alphonse Elric cherchent la pierre philosophale pour restaurer ce qu'ils ont perdu."},
-  {id:9404,title:"One Piece",type:"anime",year:1999,genre:"Aventure · Action",rating:8.7,poster_url:"https://image.tmdb.org/t/p/w500/fcXdJlbSdUEeMSJFsXKsznGwwok.jpg",description:"Luffy et son équipage parcourent les mers à la recherche du légendaire One Piece."},
-];
 
-const demoSeasons={9101:{1:["La disparition de Will Byers","La barjot de Maple Street","Holly, Jolly","Le corps","La puce et l'acrobate"],2:["MADMAX","Des bonbons et un monstre","Le têtard","Will le Sage","Dig Dug"],3:["Suzie, tu es là ?","Le centre commercial","L'affaire de la sauveteuse","Le sauna","L'été de la mort"]},9102:{1:["Le commencement","Le chat dans le sac","...Et le sac dans la rivière","Cancer Man","Gris Matter"],2:["Sept trente-sept","Grillé","Mas","4 jours dehors","Phoenix"],3:["No Más","Caballo Sin Nombre","I.F.T.","Green Light","Mas"]},9103:{1:["L'hiver vient","La Route Royale","Lord Snow","Infirmes, Bâtards et Choses Brisées","Le Loup et le Lion"],2:["Le Nord se souvient","Les terres de la nuit","Ce qui est mort ne saurait mourir","Les jardins d'os","Le fantôme d'Harrenhal"]},9104:{1:["Quand nous sommes dans le besoin","Infection","Long, Long Time","S'il vous plaît, tenez ma main","Endurer et survivre"],2:["Après le temps","Traversée","Qui sommes-nous ?","Les morts-vivants","Lumière"]},9105:{1:["Wednesday's Child Is Full of Woe","Woe Is the Loneliest Number","Friend or Woe","Woe What a Night","You Reap What You Woe"],2:["Here We Woe Again","The Devil You Woe","If These Woes Could Talk","Woe Me the Money","This Means Woe"]},9106:{1:["Efectuar lo acordado","Imprudencias letales","Errar al disparar","Caballo de Troya","El día de la marmota"]}};
+
+
 function isSeries(item){return ['serie','series','tv','anime'].includes(String(item?.type||'').toLowerCase());}
 function getSeasons(item){
-  const raw=item?.seasons||demoSeasons[item?.id]||null;
+const raw=item?.seasons||null;
   if(raw && !Array.isArray(raw)) return raw;
   if(Array.isArray(raw)){
     const mapped={};
@@ -632,7 +599,7 @@ async function renderSearchResults(query) {
     return;
   }
 
-  const fullLocalPool = [...contents, ...demoCatalog, ...extraCatalog].map(normalizeContent);
+const fullLocalPool = contents.map(normalizeContent);
   const localMatches = fullLocalPool.filter(item => {
     const title = String(item.title || "").toLowerCase();
     const orig = String(item.original_title || item.original_name || "").toLowerCase();
@@ -802,8 +769,7 @@ async function loadContents(){
   }catch(error){
     console.warn("Catalogue Supabase indisponible, utilisation du catalogue local :",error);
   }
-  contents=(dbContents.length?dbContents:[...demoCatalog,...extraCatalog]).map(normalizeContent).filter(isAllowedContent);
-  if ($("status")) {
+contents=dbContents.map(normalizeContent).filter(isAllowedContent);  if ($("status")) {
     $("status").innerHTML=`<span class="status-dot"></span> Catalogue disponible · ${contents.length} contenu(s)`;
     $("status").className="status ok";
   }
