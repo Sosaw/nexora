@@ -757,25 +757,75 @@ async function syncCatalogIfNeeded(){
   }catch(error){console.warn("Synchronisation TMDB non bloquante:",error);return null}
 }
 
-async function fetchAllContents(){const all=[];const pageSize=1000;for(let from=0;;from+=pageSize){const to=from+pageSize-1;const {data,error}=await db.from("contents").select("*").order("created_at",{ascending:false}).range(from,to);if(error)throw error;const batch=data||[];all.push(...batch);if(batch.length<pageSize)break}return all}
+async function fetchContentsPage(from=0,to=999){
+  const {data,error}=await db
+    .from("contents")
+    .select("*")
+    .order("created_at",{ascending:false})
+    .range(from,to);
+
+  if(error) throw error;
+  return data||[];
+}
+
+async function fetchAllContents(){
+  const pageSize=1000;
+  const firstPage=await fetchContentsPage(0,pageSize-1);
+  const all=[...firstPage];
+
+  if(firstPage.length<pageSize) return all;
+
+  for(let from=pageSize;;from+=pageSize){
+    const batch=await fetchContentsPage(from,from+pageSize-1);
+    all.push(...batch);
+    if(batch.length<pageSize) break;
+  }
+
+  return all;
+}
 
 async function loadContents(){
   if ($("status")) {
     $("status").innerHTML='<span class="status-dot"></span> Chargement du catalogue…';
   }
-  let dbContents=[];
+   let dbContents=[];
+
   try{
-    dbContents=await fetchAllContents();
+    // Charger uniquement la première page pour afficher rapidement le catalogue
+    dbContents=await fetchContentsPage(0,999);
   }catch(error){
-    console.warn("Catalogue Supabase indisponible, utilisation du catalogue local :",error);
+    console.warn("Catalogue Supabase indisponible :",error);
   }
-contents=dbContents.map(normalizeContent).filter(isAllowedContent);  if ($("status")) {
+
+  contents=dbContents.map(normalizeContent).filter(isAllowedContent);
+
+  if ($("status")) {
     $("status").innerHTML=`<span class="status-dot"></span> Catalogue disponible · ${contents.length} contenu(s)`;
     $("status").className="status ok";
   }
+
   const hero=contents.find(x=>x.is_featured)||contents[0];
   if(hero) setHero(hero);
+
   render();
+
+  // Charger le reste du catalogue en arrière-plan
+  fetchAllContents().then(allContents=>{
+    if(allContents.length>contents.length){
+      contents=allContents.map(normalizeContent).filter(isAllowedContent);
+
+      const updatedHero=contents.find(x=>x.is_featured)||contents[0];
+      if(updatedHero) setHero(updatedHero);
+
+      render();
+
+      if ($("status")) {
+        $("status").innerHTML=`<span class="status-dot"></span> Catalogue disponible · ${contents.length} contenu(s)`;
+      }
+    }
+  }).catch(error=>{
+    console.warn("Chargement du reste du catalogue impossible :",error);
+  });
 
   syncCatalogIfNeeded().then(result=>{
     if(result){
