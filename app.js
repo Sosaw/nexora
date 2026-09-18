@@ -777,22 +777,12 @@ contents=dbContents.map(normalizeContent).filter(isAllowedContent);  if ($("stat
   if(hero) setHero(hero);
   render();
 
-  syncCatalogIfNeeded().then(async result=>{
-    if(!result) return;
-    try{
-      const refreshed=await fetchAllContents();
-      if(refreshed.length){
-        contents=refreshed.map(normalizeContent).filter(isAllowedContent);
-        const updatedHero=contents.find(x=>x.is_featured)||contents[0];
-        if(updatedHero) setHero(updatedHero);
-        render();
-        if ($("status")) {
-          $("status").innerHTML=`<span class="status-dot"></span> Catalogue mis à jour · ${contents.length} contenu(s)`;
-        }
-      }
-    }catch(error){
-      console.warn("Actualisation après synchronisation impossible :",error);
+  syncCatalogIfNeeded().then(result=>{
+    if(result){
+      console.log("Synchronisation du catalogue terminée.");
     }
+  }).catch(error=>{
+    console.warn("Synchronisation du catalogue impossible :",error);
   });
 }
 
