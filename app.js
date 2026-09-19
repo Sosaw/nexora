@@ -152,22 +152,19 @@ function isAllowedContent(item){
 }
 
 function labelType(type){return ({film:"FILM",serie:"SÉRIE",anime:"ANIMÉ"})[normalizeContentType({type})]||String(type||"").toUpperCase()}
-function card(item,variant="row"){
+function card(item){
   const meta=[item.year,item.genre,item.rating?`${item.rating}/10`:null].filter(Boolean).join(" · ");
   const poster=imageUrl(item,"poster");
   const posterMarkup=poster?`<img class="poster-img" src="${escapeAttr(poster)}" alt="Affiche de ${escapeAttr(item.title)}" loading="lazy" decoding="async">`:'';
-  const cardClass=variant==="catalog"?"card catalog-card":"card";
-  return `<article class="${cardClass}" data-id="${escapeAttr(item.id)}"><div class="poster">${posterMarkup}</div><div class="shade"></div><div class="card-info"><div class="card-type">${labelType(item.type)}</div><div class="card-title">${escapeHtml(item.title)}</div><div class="card-meta">${escapeHtml(meta)}</div></div><div class="card-actions"><button class="card-play" data-play="${escapeAttr(item.id)}" aria-label="Lire ${escapeAttr(item.title)}">▶</button></div></article>`;
+  return `<article class="card" data-id="${escapeAttr(item.id)}"><div class="poster">${posterMarkup}</div><div class="shade"></div><div class="card-info"><div class="card-type">${labelType(item.type)}</div><div class="card-title">${escapeHtml(item.title)}</div><div class="card-meta">${escapeHtml(meta)}</div></div><div class="card-actions"><button class="card-play" data-play="${escapeAttr(item.id)}" aria-label="Lire ${escapeAttr(item.title)}">▶</button></div></article>`;
 }
 function section(title,items,suffix="",filter="",layout="row"){
   if(!items.length)return"";
   const count=items.length;
   const visible=layout==="grid"?items:items.slice(0,24);
   const listClass=layout==="grid"?"cards catalog-grid":"cards";
-  const cardVariant=layout==="grid"?"catalog":"row";
-  return `<section class="row ${layout==="grid"?"row-grid-view":""}"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div>${layout==="grid"?"":`<button class="row-link" data-row-filter="${filter}">${suffix||`${count} titre${count>1?"s":""}`} <span>→</span></button>`}</div><div class="${listClass}">${visible.map(item=>card(item,cardVariant)).join("")}</div></section>`;
+  return `<section class="row ${layout==="grid"?"row-grid-view":""}"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div>${layout==="grid"?"":`<button class="row-link" data-row-filter="${filter}">${suffix||`${count} titre${count>1?"s":""}`} <span>→</span></button>`}</div><div class="${listClass}">${visible.map(card).join("")}</div></section>`;
 }
-
 function getWatchState(){try{return JSON.parse(localStorage.getItem("nexora_watch")||"{}")}catch{return{}}}
 function saveWatchState(state){localStorage.setItem("nexora_watch",JSON.stringify(state))}
 function markWatched(item){const state=getWatchState();const entry=state[item.id]||{views:0,progress:0};entry.views=(entry.views||0)+1;entry.lastWatched=Date.now();entry.progress=Math.max(entry.progress||0,8);state[item.id]=entry;saveWatchState(state)}
