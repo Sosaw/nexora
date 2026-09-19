@@ -16,12 +16,12 @@
 .hero-backdrop:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,8,11,.98) 0%,rgba(7,8,11,.83) 18%,rgba(7,8,11,.32) 54%,rgba(7,8,11,.08) 78%,rgba(7,8,11,.48) 100%);z-index:1}
 .hero-backdrop:after{background:radial-gradient(ellipse at 72% 44%,transparent 0%,rgba(7,8,11,.08) 35%,rgba(7,8,11,.5) 88%),linear-gradient(0deg,#07080b 0%,rgba(7,8,11,.05) 32%,rgba(7,8,11,.18) 100%)}
 .hero-content{max-width:720px;animation:heroContentIn .8s ease both}
-@keyframes heroContentIn{from{opacity:0;transform:translateY(71px)}to{opacity:1;transform:translateY(55px)}}
+@keyframes heroContentIn{from{opacity:0;transform:translateY(91px)}to{opacity:1;transform:translateY(75px)}}
 .hero-kicker{padding:7px 11px;border:1px solid rgba(197,255,61,.18);background:rgba(197,255,61,.055);border-radius:999px;backdrop-filter:blur(10px);margin-bottom:20px}
 .hero h1{text-wrap:balance;text-shadow:0 8px 40px rgba(0,0,0,.35)}
 .hero-desc{font-size:15px;line-height:1.75;color:#d0d2d8;text-shadow:0 2px 15px rgba(0,0,0,.6)}
 .hero-actions{margin-top:30px}.hero-actions .btn{min-height:46px;padding:13px 21px}
-.hero-progress{width:220px;bottom:32px;border-radius:99px;overflow:hidden}.hero-progress span{transition:width .5s ease;background:var(--lime);box-shadow:0 0 12px rgba(197,255,61,.35)}
+.hero-progress{width:220px;bottom:32px;border-radius:99px;overflow:hidden}.hero-progress span{transition:width 15s linear;background:var(--lime);box-shadow:0 0 12px rgba(197,255,61,.35)}
 .hero-scroll{bottom:31px;right:auto;left:7%;transform:none;display:flex;align-items:center;gap:10px;color:#8d919b}.hero-scroll span{font-size:15px;color:#fff;animation:scrollBounce 1.8s ease-in-out infinite}
 @keyframes scrollBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
 
