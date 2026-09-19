@@ -639,7 +639,7 @@ body.player-open{overflow:hidden}
 
 /* Optimisation mémoire et rendu pour Firefox */
 .poster { overflow: hidden; background: #171a21; }
-.poster-img { width: 100%; height: 100%; display: block; object-fit: contain; object-position: center center; background: #0b0d12; }
+.poster-img { width: 100%; height: 100%; display: block; object-fit: cover; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
@@ -750,242 +750,56 @@ body.player-open{overflow:hidden}
   background-color:#0b0d12 !important;
 }
 
-/* NEXORA — affiches catalogue en format portrait, sans recadrage */
+
+/* NEXORA — catalogue : affiches portrait centrées, basé sur la sauvegarde du 19/09 */
 .catalog-grid{
+  display:grid !important;
   grid-template-columns:repeat(6,minmax(0,1fr)) !important;
   gap:20px !important;
-}
-.catalog-grid .card{
-  aspect-ratio:2/3 !important;
-  height:auto !important;
-  min-height:0 !important;
-}
-.catalog-grid .poster,
-.catalog-grid .poster-img{
-  width:100%;
-  height:100%;
-  object-fit:contain !important;
-  object-position:center center !important;
-}
-.catalog-grid .shade{
-  background:linear-gradient(180deg,transparent 42%,rgba(4,5,8,.12) 52%,rgba(4,5,8,.94) 100%);
-}
-.catalog-grid .card-info{
-  left:14px;
-  right:14px;
-  bottom:13px;
-}
-@media(max-width:1400px){.catalog-grid{grid-template-columns:repeat(5,minmax(0,1fr)) !important;}}
-@media(max-width:1100px){.catalog-grid{grid-template-columns:repeat(4,minmax(0,1fr)) !important;}}
-@media(max-width:760px){.catalog-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:12px !important;}.catalog-grid .card-info{left:10px;right:10px;bottom:10px}.catalog-grid .card-title{font-size:13px;}}
-@media(max-width:520px){.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:11px !important;}}
-
-/* NEXORA — correction définitive des cartes catalogue */
-.catalog-grid .card{
-  display:flex !important;
-  flex-direction:column !important;
-  aspect-ratio:auto !important;
-  height:auto !important;
-  overflow:hidden !important;
-  border-radius:11px !important;
-  background:#11141a !important;
-}
-.catalog-grid .poster{
-  position:relative !important;
-  inset:auto !important;
-  width:100% !important;
-  height:auto !important;
-  aspect-ratio:2/3 !important;
-  flex:0 0 auto !important;
-  overflow:hidden !important;
-  background-color:#0b0d12 !important;
-  background-size:contain !important;
-  background-position:center !important;
-  background-repeat:no-repeat !important;
-}
-.catalog-grid .poster-img{
-  position:absolute !important;
-  inset:0 !important;
-  width:100% !important;
-  height:100% !important;
-  display:block !important;
-  object-fit:contain !important;
-  object-position:center !important;
-}
-.catalog-grid .shade{
-  position:absolute !important;
-  inset:0 !important;
-  pointer-events:none !important;
-  background:linear-gradient(180deg,transparent 55%,rgba(4,5,8,.18) 72%,rgba(4,5,8,.72) 100%) !important;
-}
-.catalog-grid .card-info{
-  position:relative !important;
-  left:auto !important;
-  right:auto !important;
-  bottom:auto !important;
-  transform:none !important;
-  padding:12px 13px 14px !important;
-  min-height:67px !important;
-  background:#11141a !important;
-}
-.catalog-grid .card-type{
-  display:block !important;
-  margin:0 0 5px !important;
-  font-size:8px !important;
-}
-.catalog-grid .card-title{
-  white-space:normal !important;
   overflow:visible !important;
-  text-overflow:clip !important;
-  display:-webkit-box !important;
-  -webkit-box-orient:vertical !important;
-  -webkit-line-clamp:2 !important;
-  line-height:1.25 !important;
-  min-height:2.5em !important;
+  padding:4px 0 10px !important;
+  mask-image:none !important;
 }
-.catalog-grid .card-meta{
-  white-space:nowrap !important;
-  overflow:hidden !important;
-  text-overflow:ellipsis !important;
-  margin-top:5px !important;
-}
-.catalog-grid .card:hover .poster{
-  transform:none !important;
-  filter:none !important;
-}
-
-
-/* NEXORA — cadrage final des affiches : image centrée et remplissage exact du cadre */
 .catalog-grid .card{
-  width:100% !important;
-  min-width:0 !important;
-  box-sizing:border-box !important;
-}
-.catalog-grid .poster{
-  width:100% !important;
-  aspect-ratio:2 / 3 !important;
-  height:auto !important;
-  min-height:0 !important;
-  display:block !important;
   position:relative !important;
-  overflow:hidden !important;
-  background:#0b0d12 !important;
-}
-.catalog-grid .poster-img{
-  position:absolute !important;
-  top:0 !important;
-  left:0 !important;
-  right:0 !important;
-  bottom:0 !important;
-  width:100% !important;
-  height:100% !important;
-  margin:0 !important;
-  padding:0 !important;
-  display:block !important;
-  object-fit:contain !important;
-  object-position:50% 50% !important;
-}
-.catalog-grid .card-info{
-  width:100% !important;
-  min-width:0 !important;
-  box-sizing:border-box !important;
-  text-align:left !important;
-}
-
-
-/* NEXORA — correction structurelle finale du cadre poster */
-.catalog-grid .card{
   display:block !important;
   width:100% !important;
   min-width:0 !important;
   height:auto !important;
-  aspect-ratio:auto !important;
+  aspect-ratio:2 / 3 !important;
   overflow:hidden !important;
   box-sizing:border-box !important;
 }
 .catalog-grid .poster{
-  position:relative !important;
-  inset:auto !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  width:100% !important;
-  height:auto !important;
-  aspect-ratio:2 / 3 !important;
-  margin:0 !important;
-  padding:0 !important;
-  overflow:hidden !important;
-  box-sizing:border-box !important;
-  background:#0b0d12 !important;
-}
-.catalog-grid .poster-img{
-  position:static !important;
-  inset:auto !important;
-  display:block !important;
-  flex:0 0 auto !important;
-  width:100% !important;
-  height:100% !important;
-  max-width:100% !important;
-  max-height:100% !important;
-  margin:0 !important;
-  padding:0 !important;
-  object-fit:contain !important;
-  object-position:center center !important;
-  transform:none !important;
-}
-.catalog-grid .shade{
   position:absolute !important;
   inset:0 !important;
-  z-index:2 !important;
-  pointer-events:none !important;
-}
-.catalog-grid .card-info{
-  position:relative !important;
-  z-index:3 !important;
   width:100% !important;
-  margin:0 !important;
-  box-sizing:border-box !important;
-}
-
-
-/* NEXORA — centrage réel de l'affiche dans son cadre (dernier correctif) */
-.catalog-grid .poster{
+  height:100% !important;
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
-  position:relative !important;
-  width:100% !important;
-  height:auto !important;
-  aspect-ratio:2 / 3 !important;
   overflow:hidden !important;
-  margin:0 !important;
-  padding:0 !important;
   background:#0b0d12 !important;
+  background-image:none !important;
+  transform:none !important;
 }
 .catalog-grid .poster-img{
   position:relative !important;
   inset:auto !important;
   display:block !important;
-  flex:0 0 auto !important;
   width:auto !important;
   height:100% !important;
   max-width:100% !important;
   max-height:100% !important;
-  min-width:0 !important;
-  min-height:0 !important;
   margin:0 auto !important;
-  padding:0 !important;
   object-fit:contain !important;
   object-position:center center !important;
   transform:none !important;
 }
-.catalog-grid .shade{
-  position:absolute !important;
-  inset:0 !important;
-  z-index:2 !important;
-  pointer-events:none !important;
-}
-.catalog-grid .card-info{
-  position:relative !important;
-  z-index:3 !important;
-}
+.catalog-grid .shade{position:absolute !important;inset:0 !important;z-index:2 !important;pointer-events:none !important;}
+.catalog-grid .card-info{position:absolute !important;left:14px !important;right:14px !important;bottom:13px !important;z-index:3 !important;}
+.catalog-grid .card-title{white-space:nowrap !important;overflow:hidden !important;text-overflow:ellipsis !important;}
+@media(max-width:1400px){.catalog-grid{grid-template-columns:repeat(5,minmax(0,1fr)) !important;}}
+@media(max-width:1100px){.catalog-grid{grid-template-columns:repeat(4,minmax(0,1fr)) !important;}}
+@media(max-width:760px){.catalog-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:12px !important;}.catalog-grid .card-info{left:10px !important;right:10px !important;bottom:10px !important;}}
+@media(max-width:520px){.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:11px !important;}}
