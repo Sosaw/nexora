@@ -256,7 +256,6 @@ function renderCatalogView(tab="ranking"){
   bindCards();
 }
 
-function filtered()
 function filtered(){if(currentFilter==="mylist"){const names=new Set(getList());return contents.filter(x=>names.has(x.title))}if(["film","serie","anime"].includes(currentFilter))return contents.filter(x=>x.type===currentFilter);if(currentFilter==="new")return recentFilms();if(currentFilter==="trend")return contents.filter(x=>x.is_featured||Number(x.rating||0)>=8);return contents}
 function resolveContentId(raw){
   const value=String(raw??"");
