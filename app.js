@@ -613,6 +613,7 @@ const fullLocalPool = contents.map(normalizeContent);
     try {
       const { data, error } = await db.from("contents")
         .select("*")
+        .eq("is_available",true)
         .ilike("title", `%${q}%`)
         .limit(8);
 
@@ -745,22 +746,16 @@ db.auth.getSession().then(({data})=>{currentUser=data.session?.user||null;update
 db.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;updateAuthUI()});
 
 async function syncCatalogIfNeeded(){
-  const key="nexora_last_catalog_sync_v5";
-  const last=Number(localStorage.getItem(key)||0);
-  if(Date.now()-last<1000*60*60*12)return null;
-  try{
-    const {data,error}=await db.functions.invoke("nexora-catalog-v5",{body:{}});
-    if(error) throw error;
-    if(!data?.ok) throw new Error(data?.error||"Synchronisation TMDB impossible");
-    localStorage.setItem(key,String(Date.now()));
-    return data;
-  }catch(error){console.warn("Synchronisation TMDB non bloquante:",error);return null}
+  // La synchronisation du catalogue est désormais pilotée côté Supabase,
+  // une fois tous les 3 jours, indépendamment des visiteurs.
+  return null;
 }
 
 async function fetchContentsPage(from=0,to=999){
   const {data,error}=await db
     .from("contents")
     .select("*")
+    .eq("is_available",true)
     .order("created_at",{ascending:false})
     .range(from,to);
 
