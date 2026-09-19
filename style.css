@@ -784,16 +784,16 @@ body.player-open{overflow:hidden}
   transform:none !important;
 }
 .catalog-grid .poster-img{
-  position:relative !important;
-  inset:auto !important;
+  position:absolute !important;
+  inset:0 !important;
   display:block !important;
-  width:auto !important;
+  width:100% !important;
   height:100% !important;
-  max-width:100% !important;
-  max-height:100% !important;
-  margin:0 auto !important;
-  object-fit:contain !important;
-  object-position:center center !important;
+  max-width:none !important;
+  max-height:none !important;
+  margin:0 !important;
+  object-fit:cover !important;
+  object-position:50% 50% !important;
   transform:none !important;
 }
 .catalog-grid .shade{position:absolute !important;inset:0 !important;z-index:2 !important;pointer-events:none !important;}
