@@ -409,7 +409,7 @@ function startHeroCarousel(pool){
 let heroFitFrame=null;
 
 function fitHeroTitle(){
-  const hero=$("hero"),content=$(".hero-content"),title=$("heroTitle");
+  const hero=$("hero"),content=document.querySelector(".hero-content"),title=$("heroTitle");
   if(!hero||!content||!title||hero.classList.contains("hidden"))return;
   const mobile=window.matchMedia("(max-width:760px)").matches;
   const maxSize=mobile?Math.min(54,Math.max(30,window.innerWidth*0.11)):Math.min(104,Math.max(52,window.innerWidth*0.074));
