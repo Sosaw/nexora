@@ -297,6 +297,19 @@
     
     .season-selector-container { position: relative; margin-bottom: 18px; }
     .season-active-bar { background: #202020; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .s-title {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 12px;
+}
+
+.s-count {
+  margin-left: auto;
+  white-space: nowrap;
+  color: #999;
+}
     .season-active-bar:hover { background: #262626; border-color: rgba(255,255,255,0.25); }
     .season-dropdown-card { position: absolute; top: 52px; left: 0; right: 0; background: #1d1d1d; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; box-shadow: 0 12px 35px rgba(0,0,0,0.9); padding: 12px; display: none; flex-direction: column; z-index: 70; }
     .season-dropdown-card.open { display: flex; }
@@ -526,7 +539,11 @@
       <div class="drawer-header"><h2>Épisodes</h2><button class="icon-btn" onclick="toggleDrawer(event)">✕</button></div>
       <div class="season-selector-container">
         <div class="season-active-bar" onclick="toggleSeasonDropdown(event)">
-          <div class="s-title"><span id="activeSeasonName">Saison 1</span><span class="s-count" id="activeSeasonCount">10 ép</span></div><span class="s-arrow" id="seasonArrow">⌄</span>
+          <div class="s-title">
+  <span id="activeSeasonName">Saison 1</span>
+  <span class="s-count" id="activeSeasonCount">10 Épisodes</span>
+</div>
+<span class="s-arrow" id="seasonArrow">⌄</span>
         </div>
         <div class="season-dropdown-card" id="seasonDropdownCard">
           <div class="season-dropdown-header" id="seasonDropdownHeader">8 SAISONS</div><div class="season-options-list" id="seasonOptionsList"></div>
@@ -749,7 +766,7 @@
         const row = document.createElement('div');
         row.className = `season-row ${isActive ? 'active' : ''}`;
         row.onclick = (e) => { e.stopPropagation(); seasonDropdownCard.classList.remove('open'); seasonArrow.innerText = '⌄'; lancerEpisode(s.season_number, 1); };
-        row.innerHTML = `<span>${s.name || 'Saison ' + s.season_number}</span><div class="season-row-right"><span>${s.episode_count} ép</span>${isActive ? '<span>✓</span>' : ''}</div>`;
+        row.innerHTML = `<span>${s.name || 'Saison ' + s.season_number}</span><div class="season-row-right"><span>${s.episode_count} Épisodes</span>${isActive ? '<span>✓</span>' : ''}</div>`;
         list.appendChild(row);
       });
     }
@@ -766,8 +783,7 @@
       episodesBtn.style.display = 'inline-flex';
       document.getElementById('seasonEpCode').innerText = `S${String(sNum).padStart(2, '0')}E${String(epNum).padStart(2, '0')}`;
       document.getElementById('activeSeasonName').innerText = seasonData.name || `Saison ${sNum}`;
-      document.getElementById('activeSeasonCount').innerText = `${(seasonData.episodes || []).length} ép`;
-
+      document.getElementById('activeSeasonCount').innerText = `${(seasonData.episodes || []).length} Épisodes`;
       const totalEps = (seasonData.episodes || []).length;
       if (epNum < totalEps) {
         hasNextEp = true; nextSNum = sNum; nextEpNum = epNum + 1;
