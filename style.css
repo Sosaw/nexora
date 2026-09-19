@@ -853,3 +853,41 @@ body.player-open{overflow:hidden}
   transform:none !important;
   filter:none !important;
 }
+
+
+/* NEXORA — cadrage final des affiches : image centrée et remplissage exact du cadre */
+.catalog-grid .card{
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+.catalog-grid .poster{
+  width:100% !important;
+  aspect-ratio:2 / 3 !important;
+  height:auto !important;
+  min-height:0 !important;
+  display:block !important;
+  position:relative !important;
+  overflow:hidden !important;
+  background:#0b0d12 !important;
+}
+.catalog-grid .poster-img{
+  position:absolute !important;
+  top:0 !important;
+  left:0 !important;
+  right:0 !important;
+  bottom:0 !important;
+  width:100% !important;
+  height:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:block !important;
+  object-fit:cover !important;
+  object-position:50% 50% !important;
+}
+.catalog-grid .card-info{
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  text-align:left !important;
+}
