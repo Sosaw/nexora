@@ -243,7 +243,12 @@ function catalogTabItems(tab){
   return items;
 }
 
-function renderCatalogView(tab="ranking"){
+function renderCatalogView(tab="ranking",options={}){
+  const hideHero=options.hideHero===true;
+  activeView="catalog";
+  $("hero")?.classList.toggle("hidden",hideHero);
+  $("status")?.classList.toggle("hidden",hideHero);
+  document.body.classList.toggle("catalog-only",hideHero);
   const names={film:"Films",serie:"Séries",anime:"Animés",new:"Nouveautés",mylist:"Ma liste"};
   const items=catalogTabItems(tab);
   const resumeItems=catalogTabItems("resume");
@@ -278,10 +283,10 @@ function bindCards(){
       } else if(/^popular-(film|serie|anime)$/.test(filter)){
         currentFilter=filter.replace("popular-","");
         document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.filter===currentFilter));
-        renderCatalogView("popular");
+        renderCatalogView("popular",{hideHero:true});
         window.scrollTo({top:document.querySelector("main").offsetTop-65,behavior:"smooth"});
       } else if(filter==="trend"){
-        currentFilter="all"; renderCatalogView("ranking");
+        currentFilter="all"; renderCatalogView("ranking",{hideHero:true});
         document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
         window.scrollTo({top:document.querySelector("main").offsetTop-65,behavior:"smooth"});
       }
@@ -298,8 +303,10 @@ function bindCards(){
 function render(){
   activeView="home";
   const isMyList=currentFilter==="mylist";
+  document.body.classList.remove("catalog-only");
   $("hero")?.classList.toggle("hidden",isMyList);
   $("status")?.classList.toggle("hidden",isMyList);
+  document.body.classList.toggle("catalog-only",isMyList);
   const items=filtered();
   if(!items.length){
     stopHeroCarousel();
@@ -310,7 +317,7 @@ function render(){
   }
   if(isMyList){
     stopHeroCarousel();
-    renderCatalogView("ranking");
+    renderCatalogView("ranking",{hideHero:true});
     return;
   }
   startHeroCarousel(heroCandidates(currentFilter));
@@ -399,6 +406,49 @@ function startHeroCarousel(pool){
   restartHeroTimer();
 }
 
+let heroFitFrame=null;
+
+function fitHeroTitle(){
+  const hero=$("hero"),content=$(".hero-content"),title=$("heroTitle");
+  if(!hero||!content||!title||hero.classList.contains("hidden"))return;
+  const mobile=window.matchMedia("(max-width:760px)").matches;
+  const maxSize=mobile?Math.min(54,Math.max(30,window.innerWidth*0.11)):Math.min(104,Math.max(52,window.innerWidth*0.074));
+  const minSize=mobile?18:32;
+  const bottomReserve=mobile?48:88;
+  const topReserve=mobile?10:52;
+  let size=maxSize;
+  title.style.fontSize=`${size}px`;
+  title.style.lineHeight=mobile?".92":".88";
+  title.style.letterSpacing=mobile?"-1.8px":"-4px";
+  title.style.maxWidth="100%";
+  title.style.overflow="visible";
+
+  const availableHeight=Math.max(0,hero.clientHeight-topReserve-bottomReserve);
+  for(let i=0;i<60&&content.scrollHeight>availableHeight&&size>minSize;i++){
+    size=Math.max(minSize,size-2);
+    title.style.fontSize=`${size}px`;
+  }
+
+  if(content.scrollHeight>availableHeight){
+    const overflow=content.scrollHeight-availableHeight;
+    const titleHeight=Math.max(1,title.getBoundingClientRect().height);
+    const correction=Math.max(minSize,size-Math.ceil((overflow/titleHeight)*size));
+    if(correction<size){
+      size=correction;
+      title.style.fontSize=`${size}px`;
+    }
+  }
+}
+
+function scheduleHeroTitleFit(){
+  if(heroFitFrame)cancelAnimationFrame(heroFitFrame);
+  heroFitFrame=requestAnimationFrame(()=>{
+    heroFitFrame=null;
+    fitHeroTitle();
+    requestAnimationFrame(fitHeroTitle);
+  });
+}
+
 function setHero(item){
   if(!item)return;
   $("heroBackdrop").style=bgStyle(item,"backdrop");
@@ -411,6 +461,7 @@ function setHero(item){
   $("heroInfo").onclick=()=>openModal(item.id);
   $("heroList").onclick=()=>toggleList(item.title);
   $("heroList").innerHTML=inList(item.title)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
+  scheduleHeroTitleFit();
 }
 
 let activeView="home";
@@ -886,6 +937,7 @@ document.addEventListener("click", event => {
 });
 
 window.addEventListener("scroll",()=>$("topbar")?.classList.toggle("scrolled",window.scrollY>30));
+window.addEventListener("resize",()=>scheduleHeroTitleFit());
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closePlayer()}});
 
 db.auth.getSession().then(({data})=>{currentUser=data.session?.user||null;updateAuthUI()});
