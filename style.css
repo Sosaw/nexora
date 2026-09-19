@@ -712,3 +712,52 @@ body.player-open{overflow:hidden}
   .search-area{width:138px!important}
   .topbar .brand{font-size:19px;letter-spacing:2.5px}
 }
+/* NEXORA — recherche PC restaurée */
+@media (min-width: 981px) {
+  .search-area {
+    display: flex;
+    align-items: center;
+    width: 230px;
+    min-width: 230px;
+  }
+
+  .search-wrap {
+    display: block;
+    position: relative;
+    width: 230px !important;
+    min-width: 230px;
+    flex: 0 0 230px !important;
+    overflow: visible !important;
+  }
+
+  .search-wrap input {
+    display: block;
+    width: 100% !important;
+    height: 38px;
+    border-radius: 20px;
+    padding: 0 14px 0 36px;
+    background: #121318;
+    border: 1.5px solid #84cc16;
+    color: #ffffff;
+    font-size: 13px;
+    outline: none;
+    box-shadow: 0 0 10px rgba(132, 204, 22, 0.25);
+    box-sizing: border-box;
+  }
+
+  .search-wrap::before {
+    content: "⌕";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #84cc16;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .main-nav {
+    max-width: calc(100vw - 480px);
+  }
+}
