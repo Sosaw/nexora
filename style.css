@@ -639,7 +639,7 @@ body.player-open{overflow:hidden}
 
 /* Optimisation mémoire et rendu pour Firefox */
 .poster { overflow: hidden; background: #171a21; }
-.poster-img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.poster-img { width: 100%; height: 100%; display: block; object-fit: contain; object-position: center center; background: #0b0d12; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
