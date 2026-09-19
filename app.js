@@ -88,7 +88,17 @@ function escapeHtml(value=""){return String(value).replace(/[&<>'"]/g,c=>({'&':'
 function getList(){try{return JSON.parse(localStorage.getItem("nexora_list")||"[]")}catch{return[]}}
 function saveList(list){localStorage.setItem("nexora_list",JSON.stringify(list))}
 function inList(title){return getList().includes(title)}
-function toggleList(title){const list=getList();const next=list.includes(title)?list.filter(x=>x!==title):[...list,title];saveList(next);render();if(selected)updateModalButtons()}
+function toggleList(title){
+  const list=getList();
+  const next=list.includes(title)?list.filter(x=>x!==title):[...list,title];
+  saveList(next);
+  if(activeView==="home"){
+    if($("heroList")) $("heroList").innerHTML=next.includes(title)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
+    return;
+  }
+  render();
+  if(selected)updateModalButtons();
+}
 function gradientFor(item){const seeds={film:["#263345","#11141b"],serie:["#20362e","#10151a"],anime:["#38223c","#12131a"]};const s=seeds[item.type]||seeds.film;return `linear-gradient(135deg,${s[0]},${s[1]})`}
 function imageUrl(item, prefer="poster"){
   const raw=prefer==="backdrop"
@@ -254,7 +264,7 @@ function renderCatalogView(tab="ranking",options={}){
   const resumeItems=catalogTabItems("resume");
   const labels={ranking:"Les plus regardés",popular:"Populaires",comedie:"Comédie",action:"Action",drame:"Drame",sf:"Science-fiction",aventure:"Aventure"};
   const label=labels[tab]||"Sélection";
-  const resumeSection=currentFilter!=="mylist"&&tab!=="popular"&&resumeItems.length?section("Reprendre la lecture",resumeItems,"",currentFilter,"grid"):"";
+  const resumeSection=currentFilter!=="mylist"&&tab!=="popular"&&resumeItems.length?section("Reprendre la lecture",resumeItems,"",currentFilter,"row"):"";
   const tabsSection=currentFilter!=="mylist"?`<div class="catalog-tabs-label">EXPLORER PAR CATÉGORIE</div>${catalogTabs(tab==="popular"?"ranking":tab)}`:"";
   const title=currentFilter==="mylist"?"Ma liste":label;
   $("content").innerHTML=`<div class="catalog-intro compact"><span class="intro-line"></span><div><span class="intro-kicker">${names[currentFilter]||"CATALOGUE"}</span><p>${currentFilter==="mylist"?"Retrouvez uniquement les titres que vous avez ajoutés à votre liste.":"Explorez votre catalogue NEXORA."}</p></div></div>${resumeSection}${tabsSection}${section(title,items,"",currentFilter,"grid")||`<div class="empty"><span>✦</span><h3>${currentFilter==="mylist"?"Votre liste est vide":"Aucun titre dans cette catégorie"}</h3><p>${currentFilter==="mylist"?"Ajoutez des films ou séries avec le bouton + Ma liste.":"Votre sélection apparaîtra ici au fil de vos lectures."}</p></div>`}`;
@@ -327,8 +337,7 @@ function render(){
     const critics=contents.filter(x=>Number(x.rating||0)>=8.5).sort((a,b)=>Number(b.rating||0)-Number(a.rating||0));
     const news=recentFilms();
     const resume=Object.entries(getWatchState()).filter(([,v])=>v?.progress>0).sort((a,b)=>(b[1]?.lastWatched||0)-(a[1]?.lastWatched||0)).map(([id])=>contents.find(x=>String(x.id)===String(id))).filter(Boolean);
-    $("content").innerHTML=`<div class="catalog-intro"><span class="intro-line"></span><div><span class="intro-kicker">VOTRE UNIVERS NEXORA</span><p>Des histoires à découvrir, sélectionnées pour vous.</p></div></div>`
-      +(resume.length?section("Reprendre la lecture",resume,"","","row"):"")
+    $("content").innerHTML=(resume.length?section("Reprendre la lecture",resume,"","","row"):"")
       +section("Tendances",featured.length?featured:contents.slice(0,10),"","", "row")
       +section("Films populaires",films,"Tout voir","popular-film")
       +section("Séries populaires",series,"Tout voir","popular-serie")
@@ -458,8 +467,9 @@ function setHero(item){
   $("heroDesc").textContent=item.description||"Découvrez cette histoire sur NEXORA.";
   $("heroProgress").style.width="0%";
   $("heroWatch").onclick=()=>openPlayer(item.id);
-  $("heroInfo").onclick=()=>openModal(item.id);
   $("heroList").onclick=()=>toggleList(item.title);
+  $("heroInfo").dataset.heroId=String(item.id);
+  $("heroList").dataset.heroId=String(item.id);
   $("heroList").innerHTML=inList(item.title)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
   scheduleHeroTitleFit();
 }
@@ -748,6 +758,12 @@ function openAuth(){updateAuthUI();$("authModal")?.classList.remove("hidden");$(
 function closeAuth(){$("authModal")?.classList.add("hidden");$("authModal")?.setAttribute("aria-hidden","true");setAuthMessage("")}
 async function submitAuth(){const email=$("authEmail").value.trim(),password=$("authPassword").value,name=$("authName").value.trim();if(!email||!password){setAuthMessage("Renseigne ton e-mail et ton mot de passe.","error");return}if(password.length<6){setAuthMessage("Le mot de passe doit contenir au moins 6 caractères.","error");return}$("authSubmit").disabled=true;setAuthMessage(authMode==="signup"?"Création du compte…":"Connexion…");try{if(authMode==="signup"){const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name:name||undefined},emailRedirectTo:window.location.origin}});if(error)throw error;if(data.session){currentUser=data.user;setAuthMessage("Compte créé. Bienvenue sur NEXORA !","ok");updateAuthUI()}else setAuthMessage("Compte créé. Vérifie ton e-mail pour confirmer ton adresse.","ok")}else{const {data,error}=await db.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;updateAuthUI();setTimeout(closeAuth,450)}}catch(error){console.error(error);setAuthMessage(error.message||"Une erreur est survenue.","error")}finally{$("authSubmit").disabled=false}}
 
+$("heroInfo")?.addEventListener("click",event=>{
+  event.preventDefault();
+  event.stopPropagation();
+  const id=resolveContentId($("heroInfo").dataset.heroId);
+  if(id!==null) openModal(id);
+});
 $("closeModal")?.addEventListener("click",closeModal);
 $("closePlayer")?.addEventListener("click",closePlayer);
 $("playerFullscreen")?.addEventListener("click",()=>{const shell=$("playerModal")?.querySelector(".player-shell");if(!shell)return;if(document.fullscreenElement){document.exitFullscreen?.().catch?.(()=>{});}else{shell.requestFullscreen?.().catch?.(()=>{});}});
