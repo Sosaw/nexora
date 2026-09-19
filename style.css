@@ -1007,3 +1007,51 @@ body.player-open{overflow:hidden}
   .cards:not(.catalog-grid) .title-card,
   .catalog-grid .title-card{flex-basis:115px;width:115px;}
 }
+
+
+/* NEXORA FINAL OVERRIDE — cartes portrait compactes, priorité absolue */
+.cards .title-card,
+.catalog-grid .title-card{
+  width:145px !important;
+  min-width:145px !important;
+  max-width:145px !important;
+  flex:0 0 145px !important;
+  height:218px !important;
+  min-height:218px !important;
+  max-height:218px !important;
+  aspect-ratio:2 / 3 !important;
+  box-sizing:border-box !important;
+}
+.cards{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  align-items:flex-start !important;
+}
+.catalog-grid{
+  display:grid !important;
+  grid-template-columns:repeat(auto-fill,145px) !important;
+  justify-content:start !important;
+  align-items:start !important;
+  gap:18px !important;
+}
+.catalog-grid .title-card{margin:0 !important;}
+.title-card-media,.title-card-poster{width:100% !important;height:100% !important;}
+.title-card-info{left:9px !important;right:9px !important;bottom:9px !important;}
+.title-card:hover{
+  border-color:var(--lime) !important;
+  box-shadow:0 0 0 1px var(--lime),0 0 18px rgba(197,255,61,.32),0 14px 28px rgba(0,0,0,.45) !important;
+}
+@media(max-width:1200px){
+  .cards .title-card,.catalog-grid .title-card{
+    width:135px !important;min-width:135px !important;max-width:135px !important;
+    flex-basis:135px !important;height:203px !important;min-height:203px !important;max-height:203px !important;
+  }
+  .catalog-grid{grid-template-columns:repeat(auto-fill,135px) !important;}
+}
+@media(max-width:760px){
+  .cards .title-card,.catalog-grid .title-card{
+    width:120px !important;min-width:120px !important;max-width:120px !important;
+    flex-basis:120px !important;height:180px !important;min-height:180px !important;max-height:180px !important;
+  }
+  .catalog-grid{grid-template-columns:repeat(auto-fill,120px) !important;}
+}
