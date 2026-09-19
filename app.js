@@ -201,7 +201,6 @@ function heroCandidates(filter){
   return contents.filter(x=>x.is_featured).sort((a,b)=>popularityScore(b)-popularityScore(a));
 }
 
-function isRecentFilm
 function isRecentFilm(item){
   if(item?.type!=="film") return false;
   const now=new Date();
@@ -380,7 +379,6 @@ function setHero(item){
   $("heroList").innerHTML=inList(item.title)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
 }
 
-let activeView
 let activeView="home";
 let activePerson=null;
 
