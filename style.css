@@ -882,7 +882,7 @@ body.player-open{overflow:hidden}
   margin:0 !important;
   padding:0 !important;
   display:block !important;
-  object-fit:cover !important;
+  object-fit:contain !important;
   object-position:50% 50% !important;
 }
 .catalog-grid .card-info{
