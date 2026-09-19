@@ -950,14 +950,13 @@
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
           mettreAJourPistesAudio(); 
           mettreAJourSousTitres();
-          video.play();
-          playIconSvg.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
+          playIconSvg.innerHTML = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
         });
         hlsInstance.on(Hls.Events.AUDIO_TRACK_LOADED, mettreAJourPistesAudio);
         hlsInstance.on(Hls.Events.SUBTITLE_TRACK_LOADED, mettreAJourSousTitres);
       } else { // Fallback Safari HLS ou direct MP4
         video.src = url;
-        video.play().catch(()=>{});
+        playIconSvg.innerHTML = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
       } if (false) {
         video.src = url;
         video.play();
@@ -1092,12 +1091,12 @@
 
   // Déclenchement automatique dès l'arrivée sur player-test.html
   window.addEventListener('DOMContentLoaded', () => {
-    const vid = document.getElementById('playerVideo');
+    const vid = document.getElementById('videoEl');
     if (vid) vid.pause();
 
     setTimeout(() => {
       runAdGate(() => {
-        const v = document.getElementById('playerVideo');
+        const v = document.getElementById('videoEl');
         if (v) {
           v.muted = false;
           v.play().catch(() => {});
@@ -1109,7 +1108,7 @@
     const epSelect = document.getElementById('playerEpisodeSelect');
     if (epSelect) {
       epSelect.addEventListener('change', () => {
-        const v = document.getElementById('playerVideo');
+        const v = document.getElementById('videoEl');
         if (v) v.pause();
         runAdGate(() => {
           if (v) {
