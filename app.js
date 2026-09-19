@@ -692,13 +692,6 @@ document.addEventListener("click",e=>{
   const brand=e.target.closest?.("#brandHome");
   if(brand && brand!==brandHome) goToHomeFromBrand(e);
 },true);
-$("searchToggle")?.addEventListener("click",()=>{
-  const wrap=$("searchWrap");
-  const isOpen=wrap.classList.toggle("open");
-  $("searchToggle").setAttribute("aria-expanded",isOpen?"true":"false");
-  if(isOpen)$("search")?.focus();
-});
-
 // ==========================================
 // RECHERCHE INSTANTANÉE DIRECTE & FIABLE
 // ==========================================
