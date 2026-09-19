@@ -725,3 +725,27 @@ body.player-open{overflow:hidden}
   .player-episode-controls select{min-width:78px;font-size:11px}
   .player-fullscreen{right:10px;bottom:10px}
 }
+
+
+/* NEXORA — poster framing fix: preserve full artwork without cropping */
+.poster{
+  background-size:contain !important;
+  background-position:center center !important;
+  background-repeat:no-repeat !important;
+  background-color:#0b0d12 !important;
+}
+.card:hover .poster{
+  transform:none !important;
+  filter:none !important;
+}
+.catalog-grid .poster{
+  background-size:contain !important;
+  background-position:center center !important;
+  background-repeat:no-repeat !important;
+}
+.modal-poster,.detail-poster,.person-photo,.player-empty-poster{
+  background-size:contain !important;
+  background-position:center center !important;
+  background-repeat:no-repeat !important;
+  background-color:#0b0d12 !important;
+}
