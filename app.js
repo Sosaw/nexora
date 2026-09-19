@@ -154,7 +154,7 @@ function isAllowedContent(item){
 function labelType(type){return ({film:"FILM",serie:"SÉRIE",anime:"ANIMÉ"})[normalizeContentType({type})]||String(type||"").toUpperCase()}
 function card(item){
   const meta=[item.year,item.genre,item.rating?`${item.rating}/10`:null].filter(Boolean).join(" · ");
-  const poster=imageUrl(item,"poster");
+  const poster=imageUrl(item,"backdrop")||imageUrl(item,"poster");
   const posterMarkup=poster?`<img class="title-card-poster" src="${escapeAttr(poster)}" alt="Affiche de ${escapeAttr(item.title)}" loading="lazy" decoding="async">`:"";
   return `<article class="title-card" data-id="${escapeAttr(item.id)}">
     <div class="title-card-media">${posterMarkup}</div>
