@@ -94,6 +94,13 @@ function toggleList(title){
   saveList(next);
   if(activeView==="home"){
     if($("heroList")) $("heroList").innerHTML=next.includes(title)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
+    document.querySelectorAll("[data-list-title]").forEach(button=>{
+      if(button.dataset.listTitle===title){
+        const listed=next.includes(title);
+        button.textContent=listed?"✓":"＋";
+        button.setAttribute("aria-label",`${listed?"Retirer de":"Ajouter à"} ma liste`);
+      }
+    });
     return;
   }
   render();
@@ -163,9 +170,10 @@ function isAllowedContent(item){
 
 function labelType(type){return ({film:"FILM",serie:"SÉRIE",anime:"ANIMÉ"})[normalizeContentType({type})]||String(type||"").toUpperCase()}
 function card(item){
-  const meta=[item.year,item.genre,item.rating?`${item.rating}/10`:null].filter(Boolean).join(" · ");
+  const meta=[item.year,item.genre,item.rating?`★ ${item.rating}`:null].filter(Boolean).join(" · ");
   const poster=imageUrl(item,"poster");
   const posterMarkup=poster?`<img class="title-card-poster" src="${escapeAttr(poster)}" alt="Affiche de ${escapeAttr(item.title)}" loading="lazy" decoding="async">`:"";
+  const listed=inList(item.title);
   return `<article class="title-card" data-id="${escapeAttr(item.id)}">
     <div class="title-card-media">${posterMarkup}</div>
     <div class="title-card-shade"></div>
@@ -174,7 +182,10 @@ function card(item){
       <div class="title-card-title">${escapeHtml(item.title)}</div>
       <div class="title-card-meta">${escapeHtml(meta)}</div>
     </div>
-    <button class="title-card-play" type="button" data-play="${escapeAttr(item.id)}" aria-label="Lire ${escapeAttr(item.title)}">▶</button>
+    <div class="title-card-actions" aria-label="Actions de ${escapeAttr(item.title)}">
+      <button class="title-card-play" type="button" data-play="${escapeAttr(item.id)}" aria-label="Lire ${escapeAttr(item.title)}">▶</button>
+      <button class="title-card-list" type="button" data-list-title="${escapeAttr(item.title)}" aria-label="${listed?"Retirer de":"Ajouter à"} ma liste">${listed?"✓":"＋"}</button>
+    </div>
   </article>`;
 }
 function section(title,items,suffix="",filter="",layout="row"){
@@ -304,6 +315,8 @@ function bindCards(){
     }
     const play=e.target.closest("[data-play]");
     if(play){e.preventDefault();e.stopPropagation();const id=resolveContentId(play.dataset.play);if(id!==null)openPlayer(id);return;}
+    const list=e.target.closest("[data-list-title]");
+    if(list){e.preventDefault();e.stopPropagation();toggleList(list.dataset.listTitle);return;}
     const info=e.target.closest("[data-info]");
     if(info){e.preventDefault();e.stopPropagation();const id=resolveContentId(info.dataset.info);if(id!==null)openDetail(id);return;}
     const card=e.target.closest(".title-card");
@@ -468,8 +481,7 @@ function setHero(item){
   $("heroProgress").style.width="0%";
   $("heroWatch").onclick=()=>openPlayer(item.id);
   $("heroList").onclick=()=>toggleList(item.title);
-  $("heroInfo").dataset.heroId=String(item.id);
-  $("heroList").dataset.heroId=String(item.id);
+  $("heroInfo").onclick=()=>openDetail(item.id);
   $("heroList").innerHTML=inList(item.title)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
   scheduleHeroTitleFit();
 }
@@ -758,12 +770,6 @@ function openAuth(){updateAuthUI();$("authModal")?.classList.remove("hidden");$(
 function closeAuth(){$("authModal")?.classList.add("hidden");$("authModal")?.setAttribute("aria-hidden","true");setAuthMessage("")}
 async function submitAuth(){const email=$("authEmail").value.trim(),password=$("authPassword").value,name=$("authName").value.trim();if(!email||!password){setAuthMessage("Renseigne ton e-mail et ton mot de passe.","error");return}if(password.length<6){setAuthMessage("Le mot de passe doit contenir au moins 6 caractères.","error");return}$("authSubmit").disabled=true;setAuthMessage(authMode==="signup"?"Création du compte…":"Connexion…");try{if(authMode==="signup"){const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name:name||undefined},emailRedirectTo:window.location.origin}});if(error)throw error;if(data.session){currentUser=data.user;setAuthMessage("Compte créé. Bienvenue sur NEXORA !","ok");updateAuthUI()}else setAuthMessage("Compte créé. Vérifie ton e-mail pour confirmer ton adresse.","ok")}else{const {data,error}=await db.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;updateAuthUI();setTimeout(closeAuth,450)}}catch(error){console.error(error);setAuthMessage(error.message||"Une erreur est survenue.","error")}finally{$("authSubmit").disabled=false}}
 
-$("heroInfo")?.addEventListener("click",event=>{
-  event.preventDefault();
-  event.stopPropagation();
-  const id=resolveContentId($("heroInfo").dataset.heroId);
-  if(id!==null) openModal(id);
-});
 $("closeModal")?.addEventListener("click",closeModal);
 $("closePlayer")?.addEventListener("click",closePlayer);
 $("playerFullscreen")?.addEventListener("click",()=>{const shell=$("playerModal")?.querySelector(".player-shell");if(!shell)return;if(document.fullscreenElement){document.exitFullscreen?.().catch?.(()=>{});}else{shell.requestFullscreen?.().catch?.(()=>{});}});
