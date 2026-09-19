@@ -155,8 +155,17 @@ function labelType(type){return ({film:"FILM",serie:"SÉRIE",anime:"ANIMÉ"})[no
 function card(item){
   const meta=[item.year,item.genre,item.rating?`${item.rating}/10`:null].filter(Boolean).join(" · ");
   const poster=imageUrl(item,"poster");
-  const posterMarkup=poster?`<img class="poster-img" src="${escapeAttr(poster)}" alt="Affiche de ${escapeAttr(item.title)}" loading="lazy" decoding="async">`:'';
-  return `<article class="card" data-id="${escapeAttr(item.id)}"><div class="poster">${posterMarkup}</div><div class="shade"></div><div class="card-info"><div class="card-type">${labelType(item.type)}</div><div class="card-title">${escapeHtml(item.title)}</div><div class="card-meta">${escapeHtml(meta)}</div></div><div class="card-actions"><button class="card-play" data-play="${escapeAttr(item.id)}" aria-label="Lire ${escapeAttr(item.title)}">▶</button></div></article>`;
+  const posterMarkup=poster?`<img class="title-card-poster" src="${escapeAttr(poster)}" alt="Affiche de ${escapeAttr(item.title)}" loading="lazy" decoding="async">`:"";
+  return `<article class="title-card" data-id="${escapeAttr(item.id)}">
+    <div class="title-card-media">${posterMarkup}</div>
+    <div class="title-card-shade"></div>
+    <div class="title-card-info">
+      <div class="title-card-type">${labelType(item.type)}</div>
+      <div class="title-card-title">${escapeHtml(item.title)}</div>
+      <div class="title-card-meta">${escapeHtml(meta)}</div>
+    </div>
+    <button class="title-card-play" type="button" data-play="${escapeAttr(item.id)}" aria-label="Lire ${escapeAttr(item.title)}">▶</button>
+  </article>`;
 }
 function section(title,items,suffix="",filter="",layout="row"){
   if(!items.length)return"";
@@ -253,7 +262,7 @@ function bindCards(){
     if(play){e.preventDefault();e.stopPropagation();const id=resolveContentId(play.dataset.play);if(id!==null)openPlayer(id);return;}
     const info=e.target.closest("[data-info]");
     if(info){e.preventDefault();e.stopPropagation();const id=resolveContentId(info.dataset.info);if(id!==null)openDetail(id);return;}
-    const card=e.target.closest(".card");
+    const card=e.target.closest(".title-card");
     if(card){const id=resolveContentId(card.dataset.id);if(id!==null)openDetail(id);}
   });
 }
