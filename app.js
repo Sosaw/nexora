@@ -192,13 +192,14 @@ function popularItems(type){
   return contents.filter(x=>!type||x.type===type).sort((a,b)=>popularityScore(b)-popularityScore(a));
 }
 function heroCandidates(filter){
+  if(filter==="mylist") return [];
   if(filter==="film") return popularItems("film");
   if(filter==="serie") return popularItems("serie");
   if(filter==="anime") return popularItems("anime");
   if(filter==="new") return recentFilms();
-  if(filter==="mylist") return contents.filter(x=>getList().includes(x.title));
   if(filter==="trend") return popularItems().filter(x=>x.is_featured||Number(x.rating||0)>=8);
-  return contents.filter(x=>x.is_featured).sort((a,b)=>popularityScore(b)-popularityScore(a));
+  const featured=contents.filter(x=>x.is_featured).sort((a,b)=>popularityScore(b)-popularityScore(a));
+  return featured.length>1?featured:popularItems();
 }
 
 function isRecentFilm(item){
@@ -296,12 +297,18 @@ function bindCards(){
 }
 function render(){
   activeView="home";
-  $("hero")?.classList.remove("hidden");
-  $("status")?.classList.remove("hidden");
+  const isMyList=currentFilter==="mylist";
+  $("hero")?.classList.toggle("hidden",isMyList);
+  $("status")?.classList.toggle("hidden",isMyList);
   const items=filtered();
   if(!items.length){
     stopHeroCarousel();
-    $("content").innerHTML=`<div class="empty"><span>✦</span><h3>Votre sélection est encore vide</h3><p>De nouveaux programmes arriveront bientôt sur NEXORA.</p></div>`;
+    $("content").innerHTML=`<div class="empty"><span>✦</span><h3>${isMyList?"Votre liste est vide":"Votre sélection est encore vide"}</h3><p>${isMyList?"Ajoutez des films ou séries avec le bouton + Ma liste.":"De nouveaux programmes arriveront bientôt sur NEXORA."}</p></div>`;
+    return;
+  }
+  if(isMyList){
+    stopHeroCarousel();
+    renderCatalogView("ranking");
     return;
   }
   startHeroCarousel(heroCandidates(currentFilter));
@@ -347,17 +354,43 @@ function renderHeroDots(){
 }
 function restartHeroTimer(){
   if(heroTimer)clearInterval(heroTimer);
-  if(heroItems.length<2)return;
+  if(heroItems.length<2){
+    const progress=$("heroProgress");
+    if(progress)progress.style.width="0%";
+    return;
+  }
+  const progress=$("heroProgress");
+  if(progress){
+    progress.style.transition="none";
+    progress.style.width="0%";
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      progress.style.transition="width 15s linear";
+      progress.style.width="100%";
+    }));
+  }
   heroTimer=setInterval(()=>{
     heroIndex=(heroIndex+1)%heroItems.length;
     setHero(heroItems[heroIndex]);
     renderHeroDots();
-  },6500);
+    const nextProgress=$("heroProgress");
+    if(nextProgress){
+      nextProgress.style.transition="none";
+      nextProgress.style.width="0%";
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        nextProgress.style.transition="width 15s linear";
+        nextProgress.style.width="100%";
+      }));
+    }
+  },15000);
 }
 function startHeroCarousel(pool){
   stopHeroCarousel();
   heroItems=(pool||[]).filter(Boolean).slice(0,8);
-  if(!heroItems.length)return;
+  if(!heroItems.length){
+    const progress=$("heroProgress");
+    if(progress)progress.style.width="0%";
+    return;
+  }
   heroIndex=0;
   setHero(heroItems[0]);
   renderHeroDots();
