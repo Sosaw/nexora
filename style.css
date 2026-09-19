@@ -755,3 +755,123 @@ body.player-open{overflow:hidden}
   height:auto !important;
   min-height:0 !important;
 }
+
+
+/* NEXORA — structure unique et explicite pour toutes les cartes de titres */
+.title-card{
+  position:relative;
+  flex:0 0 clamp(245px,22.5vw,340px);
+  width:clamp(245px,22.5vw,340px);
+  aspect-ratio:16 / 9;
+  height:auto;
+  min-height:0;
+  overflow:hidden;
+  border-radius:11px;
+  background:#0b0d12;
+  border:1px solid rgba(255,255,255,.07);
+  cursor:pointer;
+  scroll-snap-align:start;
+  isolation:isolate;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  transition:transform .28s cubic-bezier(.2,.7,.2,1),box-shadow .28s,border-color .28s;
+}
+.title-card:hover{
+  transform:translateY(-7px) scale(1.025);
+  box-shadow:0 22px 45px rgba(0,0,0,.42);
+  border-color:rgba(197,255,61,.2);
+  z-index:4;
+}
+.title-card-media{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:#0b0d12;
+}
+.title-card-poster{
+  display:block;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  object-fit:contain;
+  object-position:center center;
+}
+.title-card-shade{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.04) 25%,rgba(4,5,8,.18) 48%,rgba(4,5,8,.94) 100%);
+}
+.title-card-info{
+  position:absolute;
+  z-index:2;
+  left:16px;
+  right:58px;
+  bottom:14px;
+  min-width:0;
+  pointer-events:none;
+}
+.title-card-type{
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:1.7px;
+  color:#d7ff91;
+  margin-bottom:6px;
+}
+.title-card-title{
+  color:#fff;
+  font-size:15px;
+  line-height:1.2;
+  font-weight:800;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.title-card-meta{
+  color:#a4a8b2;
+  font-size:10px;
+  line-height:1.25;
+  margin-top:5px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.title-card-play{
+  position:absolute;
+  z-index:3;
+  right:14px;
+  top:14px;
+  width:32px;
+  height:32px;
+  display:grid;
+  place-items:center;
+  padding:0 0 0 1px;
+  border:0;
+  border-radius:50%;
+  color:#090a0d;
+  background:rgba(255,255,255,.92);
+  font-size:10px;
+  cursor:pointer;
+  opacity:0;
+  transform:scale(.8);
+  transition:opacity .25s,transform .25s,background .2s;
+  box-shadow:0 8px 18px rgba(0,0,0,.28);
+}
+.title-card:hover .title-card-play,
+.title-card:focus-within .title-card-play{
+  opacity:1;
+  transform:scale(1);
+}
+.title-card-play:hover{
+  background:var(--lime);
+}
+@media(max-width:900px){
+  .title-card{flex-basis:260px;width:260px;}
+}
+@media(max-width:600px){
+  .title-card{flex-basis:245px;width:245px;}
+}
