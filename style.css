@@ -779,3 +779,77 @@ body.player-open{overflow:hidden}
 @media(max-width:1100px){.catalog-grid{grid-template-columns:repeat(4,minmax(0,1fr)) !important;}}
 @media(max-width:760px){.catalog-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:12px !important;}.catalog-grid .card-info{left:10px;right:10px;bottom:10px}.catalog-grid .card-title{font-size:13px;}}
 @media(max-width:520px){.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:11px !important;}}
+
+/* NEXORA — correction définitive des cartes catalogue */
+.catalog-grid .card{
+  display:flex !important;
+  flex-direction:column !important;
+  aspect-ratio:auto !important;
+  height:auto !important;
+  overflow:hidden !important;
+  border-radius:11px !important;
+  background:#11141a !important;
+}
+.catalog-grid .poster{
+  position:relative !important;
+  inset:auto !important;
+  width:100% !important;
+  height:auto !important;
+  aspect-ratio:2/3 !important;
+  flex:0 0 auto !important;
+  overflow:hidden !important;
+  background-color:#0b0d12 !important;
+  background-size:contain !important;
+  background-position:center !important;
+  background-repeat:no-repeat !important;
+}
+.catalog-grid .poster-img{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  display:block !important;
+  object-fit:contain !important;
+  object-position:center !important;
+}
+.catalog-grid .shade{
+  position:absolute !important;
+  inset:0 !important;
+  pointer-events:none !important;
+  background:linear-gradient(180deg,transparent 55%,rgba(4,5,8,.18) 72%,rgba(4,5,8,.72) 100%) !important;
+}
+.catalog-grid .card-info{
+  position:relative !important;
+  left:auto !important;
+  right:auto !important;
+  bottom:auto !important;
+  transform:none !important;
+  padding:12px 13px 14px !important;
+  min-height:67px !important;
+  background:#11141a !important;
+}
+.catalog-grid .card-type{
+  display:block !important;
+  margin:0 0 5px !important;
+  font-size:8px !important;
+}
+.catalog-grid .card-title{
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  display:-webkit-box !important;
+  -webkit-box-orient:vertical !important;
+  -webkit-line-clamp:2 !important;
+  line-height:1.25 !important;
+  min-height:2.5em !important;
+}
+.catalog-grid .card-meta{
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  margin-top:5px !important;
+}
+.catalog-grid .card:hover .poster{
+  transform:none !important;
+  filter:none !important;
+}
