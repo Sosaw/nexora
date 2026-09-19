@@ -303,7 +303,9 @@ function render(){
   const items=filtered();
   if(!items.length){
     stopHeroCarousel();
-    $("content").innerHTML=`<div class="empty"><span>✦</span><h3>${isMyList?"Votre liste est vide":"Votre sélection est encore vide"}</h3><p>${isMyList?"Ajoutez des films ou séries avec le bouton + Ma liste.":"De nouveaux programmes arriveront bientôt sur NEXORA."}</p></div>`;
+    $("content").innerHTML=isMyList
+      ? `<section class="mylist-page"><div class="mylist-empty"><span>✦</span><h3>Votre liste est vide</h3><p>Ajoutez des films ou séries avec le bouton + Ma liste.</p></div></section>`
+      : `<div class="empty"><span>✦</span><h3>Votre sélection est encore vide</h3><p>De nouveaux programmes arriveront bientôt sur NEXORA.</p></div>`;
     return;
   }
   if(isMyList){
