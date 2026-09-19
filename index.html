@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1009">
+<link rel="stylesheet" href="style.css?v=1010">
 <style>
  .top-actions {
     display: flex !important;
@@ -200,76 +200,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
-<script src="app.js?v=999"></script>
+<script src="app.js?v=1000"></script>
 
-<script>
-// Moteur autonome : s'exécute directement dans index.html sans dépendance
-document.addEventListener('DOMContentLoaded', () => {
-  const input = document.getElementById('search');
-  const box = document.getElementById('searchResults');
-  if (!input || !box) return;
-
-  input.addEventListener('input', () => {
-    const q = input.value.trim().toLowerCase();
-    if (q.length < 2) {
-      box.style.display = 'none';
-      box.innerHTML = '';
-      return;
-    }
-
-    const catalog = (window.contents && window.contents.length)
-      ? window.contents
-      : [...(window.demoCatalog || []), ...(window.extraCatalog || [])];
-
-    const matches = catalog.filter(item => {
-      const t = String(item.title || '').toLowerCase();
-      return t.includes(q);
-    }).slice(0, 6);
-
-    if (!matches.length) {
-      box.innerHTML = '<div style="padding:14px;color:#71717a;font-size:13px;text-align:center;">Aucun contenu trouvé</div>';
-      box.style.display = 'block';
-      return;
-    }
-
-    box.innerHTML = matches.map(item => {
-      const poster = item.poster_url || item.poster || 'https://via.placeholder.com/92x138/181920/84cc16?text=NEXORA';
-      const year = item.year || '—';
-      const type = (item.type === 'serie' || item.type === 'tv') ? 'SÉRIE' : (item.type === 'anime' ? 'ANIMÉ' : 'FILM');
-
-      return `
-        <div class="search-item" data-id="${item.id}" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s ease;">
-          <img src="${poster}" alt="" style="width:42px;height:58px;border-radius:7px;object-fit:cover;background:#202028;flex-shrink:0;">
-          <div style="flex:1;min-width:0;overflow:hidden;">
-            <div style="color:#ffffff;font-size:13.5px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.title}</div>
-            <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9ca3af;">
-              <span>${year}</span>
-              <span style="background:#84cc16;color:#07080b;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:800;">${type}</span>
-            </div>
-          </div>
-          <span style="color:#6b7280;font-size:18px;">›</span>
-        </div>
-      `;
-    }).join('');
-
-    box.style.display = 'block';
-
-    box.querySelectorAll('.search-item').forEach(el => {
-      el.addEventListener('click', () => {
-        const id = el.getAttribute('data-id');
-        box.style.display = 'none';
-        input.value = '';
-        if (typeof openDetail === 'function') openDetail(id);
-      });
-    });
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!input.contains(e.target) && !box.contains(e.target)) {
-      box.style.display = 'none';
-    }
-  });
-});
-</script>
+>
 </body>
 </html>
