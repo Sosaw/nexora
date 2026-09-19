@@ -10,7 +10,7 @@
 @media(max-width:760px){.topbar{height:68px;padding:0 18px;gap:15px}.brand{font-size:21px;letter-spacing:3px}.main-nav{display:none}.search-toggle{display:block}.search-wrap{position:absolute;top:70px;right:58px}.search-wrap.open{width:calc(100vw - 120px)}.search-wrap input{width:100%}.hero{height:680px;min-height:680px;padding:0 6% 78px}.hero-backdrop:after{background:linear-gradient(90deg,rgba(7,8,11,.93),rgba(7,8,11,.42)),linear-gradient(0deg,#07080b 2%,transparent 55%)}.hero h1{font-size:58px;letter-spacing:-3px}.hero-desc{font-size:13px}.hero-progress{bottom:26px;right:6%;width:125px}.hero-scroll{display:none}.row-head h2{font-size:18px}.modal-card{min-height:600px}.modal-info{padding:120px 27px 35px}.modal-info h2{font-size:38px}.auth-card{padding:30px}}
 
 /* V4.1 — cinematic hero polish */
-.hero{isolation:isolate;min-height:760px;height:min(88vh,900px);padding-bottom:110px}
+.hero{isolation:isolate;min-height:560px;height:min(72vh,700px);padding-bottom:86px}
 .hero-backdrop{animation:heroKenBurns 18s ease-in-out infinite alternate}
 @keyframes heroKenBurns{from{transform:scale(1.02)}to{transform:scale(1.08)}}
 .hero-backdrop:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,8,11,.98) 0%,rgba(7,8,11,.83) 18%,rgba(7,8,11,.32) 54%,rgba(7,8,11,.08) 78%,rgba(7,8,11,.48) 100%);z-index:1}
