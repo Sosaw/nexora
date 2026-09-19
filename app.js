@@ -180,6 +180,28 @@ function markWatched(item){const state=getWatchState();const entry=state[item.id
 function catalogTabs(active="ranking"){const tabs=[
   ["ranking","Classement"],["comedie","Comédie"],["action","Action"],["drame","Drame"],["sf","Science-fiction"],["aventure","Aventure"]
 ];return `<div class="catalog-tabs" role="tablist">${tabs.map(([id,label])=>`<button class="catalog-tab ${active===id?"active":""}" data-catalog-tab="${id}" role="tab">${label}</button>`).join("")}</div>`}
+
+function popularityScore(item){
+  const state=getWatchState();
+  return (Number(state[item.id]?.views||0)*1000)
+    +(Number(item.is_featured?1:0)*100)
+    +(Number(item.popularity||0)*10)
+    +(Number(item.rating||0)*10);
+}
+function popularItems(type){
+  return contents.filter(x=>!type||x.type===type).sort((a,b)=>popularityScore(b)-popularityScore(a));
+}
+function heroCandidates(filter){
+  if(filter==="film") return popularItems("film");
+  if(filter==="serie") return popularItems("serie");
+  if(filter==="anime") return popularItems("anime");
+  if(filter==="new") return recentFilms();
+  if(filter==="mylist") return contents.filter(x=>getList().includes(x.title));
+  if(filter==="trend") return popularItems().filter(x=>x.is_featured||Number(x.rating||0)>=8);
+  return contents.filter(x=>x.is_featured).sort((a,b)=>popularityScore(b)-popularityScore(a));
+}
+
+function isRecentFilm
 function isRecentFilm(item){
   if(item?.type!=="film") return false;
   const now=new Date();
@@ -207,7 +229,7 @@ function catalogTabItems(tab){
     let items=recentFilms();
     if(tab==="resume") return items.filter(x=>getWatchState()[x.id]?.progress>0);
     const terms={comedie:["comédie","comedie"],action:["action"],drame:["drame"],sf:["science-fiction","science fiction","sci-fi"],aventure:["aventure"]};
-    if(tab==="ranking") return [...items].sort((a,b)=>Number(b.rating||0)-Number(a.rating||0));
+    if(tab==="ranking"||tab==="popular") return [...items].sort((a,b)=>popularityScore(b)-popularityScore(a));
     if(terms[tab]) return items.filter(x=>terms[tab].some(t=>String(x.genre||"").toLowerCase().includes(t)));
     return items;
   }
@@ -215,24 +237,27 @@ function catalogTabItems(tab){
   let items=typeFilter?contents.filter(x=>x.type===typeFilter):contents;
   const state=getWatchState();
   if(tab==="resume") return items.filter(x=>state[x.id]?.progress>0).sort((a,b)=>(state[b.id]?.lastWatched||0)-(state[a.id]?.lastWatched||0));
-  if(tab==="ranking") return [...items].sort((a,b)=>((state[b.id]?.views||0)*100+(Number(b.rating)||0))-((state[a.id]?.views||0)*100+(Number(a.rating)||0)));
+  if(tab==="ranking"||tab==="popular") return popularItems(typeFilter);
   const terms={comedie:["comédie","comedie"],action:["action"],drame:["drame"],sf:["science-fiction","science fiction","sci-fi"],aventure:["aventure"]};
   if(terms[tab]) return items.filter(x=>terms[tab].some(t=>String(x.genre||"").toLowerCase().includes(t)));
   return items;
 }
+
 function renderCatalogView(tab="ranking"){
   const names={film:"Films",serie:"Séries",anime:"Animés",new:"Nouveautés",mylist:"Ma liste"};
   const items=catalogTabItems(tab);
   const resumeItems=catalogTabItems("resume");
-  const label=tab==="ranking"?"Les plus regardés":"Sélection "+({comedie:"Comédie",action:"Action",drame:"Drame",sf:"Science-fiction",aventure:"Aventure"}[tab]||"");
-  const resumeSection=currentFilter!=="mylist"&&resumeItems.length?section("Reprendre la lecture",resumeItems,"",currentFilter,"grid"):"";
-  const tabsSection=currentFilter!=="mylist"?`<div class="catalog-tabs-label">EXPLORER PAR CATÉGORIE</div>${catalogTabs(tab)}`:"";
-  const title=currentFilter==="mylist"?"Ma liste":"";
-  $("content").innerHTML=`<div class="catalog-intro compact"><span class="intro-line"></span><div><span class="intro-kicker">${names[currentFilter]||"CATALOGUE"}</span><p>${currentFilter==="mylist"?"Retrouvez uniquement les titres que vous avez ajoutés à votre liste.":"Explorez votre catalogue NEXORA."}</p></div></div>${resumeSection}${tabsSection}${section(title||label,items,"",currentFilter,"grid")||`<div class="empty"><span>✦</span><h3>${currentFilter==="mylist"?"Votre liste est vide":"Aucun titre dans cette catégorie"}</h3><p>${currentFilter==="mylist"?"Ajoutez des films ou séries avec le bouton + Ma liste.":"Votre sélection apparaîtra ici au fil de vos lectures."}</p></div>`}`;
+  const labels={ranking:"Les plus regardés",popular:"Populaires",comedie:"Comédie",action:"Action",drame:"Drame",sf:"Science-fiction",aventure:"Aventure"};
+  const label=labels[tab]||"Sélection";
+  const resumeSection=currentFilter!=="mylist"&&tab!=="popular"&&resumeItems.length?section("Reprendre la lecture",resumeItems,"",currentFilter,"grid"):"";
+  const tabsSection=currentFilter!=="mylist"?`<div class="catalog-tabs-label">EXPLORER PAR CATÉGORIE</div>${catalogTabs(tab==="popular"?"ranking":tab)}`:"";
+  const title=currentFilter==="mylist"?"Ma liste":label;
+  $("content").innerHTML=`<div class="catalog-intro compact"><span class="intro-line"></span><div><span class="intro-kicker">${names[currentFilter]||"CATALOGUE"}</span><p>${currentFilter==="mylist"?"Retrouvez uniquement les titres que vous avez ajoutés à votre liste.":"Explorez votre catalogue NEXORA."}</p></div></div>${resumeSection}${tabsSection}${section(title,items,"",currentFilter,"grid")||`<div class="empty"><span>✦</span><h3>${currentFilter==="mylist"?"Votre liste est vide":"Aucun titre dans cette catégorie"}</h3><p>${currentFilter==="mylist"?"Ajoutez des films ou séries avec le bouton + Ma liste.":"Votre sélection apparaîtra ici au fil de vos lectures."}</p></div>`}`;
   document.querySelectorAll("[data-catalog-tab]").forEach(btn=>btn.addEventListener("click",()=>renderCatalogView(btn.dataset.catalogTab)));
   bindCards();
 }
 
+function filtered()
 function filtered(){if(currentFilter==="mylist"){const names=new Set(getList());return contents.filter(x=>names.has(x.title))}if(["film","serie","anime"].includes(currentFilter))return contents.filter(x=>x.type===currentFilter);if(currentFilter==="new")return recentFilms();if(currentFilter==="trend")return contents.filter(x=>x.is_featured||Number(x.rating||0)>=8);return contents}
 function resolveContentId(raw){
   const value=String(raw??"");
@@ -251,6 +276,11 @@ function bindCards(){
       if(["film","serie","anime","new","mylist"].includes(filter)){
         const target=document.querySelector(`.nav[data-filter="${filter}"]`);
         if(target) target.click();
+      } else if(/^popular-(film|serie|anime)$/.test(filter)){
+        currentFilter=filter.replace("popular-","");
+        document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.filter===currentFilter));
+        renderCatalogView("popular");
+        window.scrollTo({top:document.querySelector("main").offsetTop-65,behavior:"smooth"});
       } else if(filter==="trend"){
         currentFilter="all"; renderCatalogView("ranking");
         document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
@@ -266,9 +296,91 @@ function bindCards(){
     if(card){const id=resolveContentId(card.dataset.id);if(id!==null)openDetail(id);}
   });
 }
-function render(){activeView="home";$("hero")?.classList.remove("hidden");$("status")?.classList.remove("hidden");const items=filtered();if(!items.length){$("content").innerHTML=`<div class="empty"><span>✦</span><h3>Votre sélection est encore vide</h3><p>De nouveaux programmes arriveront bientôt sur NEXORA.</p></div>`;return}const heroPool={all:contents,film:contents.filter(x=>x.type==="film"),serie:contents.filter(x=>x.type==="serie"),anime:contents.filter(x=>x.type==="anime"),new:recentFilms(),trend:contents.filter(x=>x.is_featured||Number(x.rating||0)>=8),mylist:contents.filter(x=>getList().includes(x.title))}[currentFilter]||contents; const heroItem=heroPool.find(x=>x.is_featured)||heroPool[0]||contents[0]; if(heroItem)setHero(heroItem); if(currentFilter==="all"){const featured=contents.filter(x=>x.is_featured),films=contents.filter(x=>x.type==="film"),series=contents.filter(x=>x.type==="serie"),anime=contents.filter(x=>x.type==="anime"),critics=contents.filter(x=>Number(x.rating||0)>=8.5),news=recentFilms(),resume=Object.entries(getWatchState()).filter(([,v])=>v?.progress>0).sort((a,b)=>(b[1]?.lastWatched||0)-(a[1]?.lastWatched||0)).map(([id])=>contents.find(x=>String(x.id)===String(id))).filter(Boolean);$("content").innerHTML=`<div class="catalog-intro"><span class="intro-line"></span><div><span class="intro-kicker">VOTRE UNIVERS NEXORA</span><p>Des histoires à découvrir, sélectionnées pour vous.</p></div></div>`+(resume.length?section("Reprendre la lecture",resume,"","","row"):``)+section("Tendances",featured.length?featured:contents.slice(0,10),"","", "row")+section("Films populaires",films,"Tout voir","film")+section("Séries populaires",series,"Tout voir","serie")+section("Animés populaires",anime,"Tout voir","anime")+section("Salués par la critique",critics,"Tout voir","trend")+section("Nouveautés",news,"Tout voir","new")}else{renderCatalogView("ranking");return} bindCards(); }
+function render(){
+  activeView="home";
+  $("hero")?.classList.remove("hidden");
+  $("status")?.classList.remove("hidden");
+  const items=filtered();
+  if(!items.length){
+    stopHeroCarousel();
+    $("content").innerHTML=`<div class="empty"><span>✦</span><h3>Votre sélection est encore vide</h3><p>De nouveaux programmes arriveront bientôt sur NEXORA.</p></div>`;
+    return;
+  }
+  startHeroCarousel(heroCandidates(currentFilter));
+  if(currentFilter==="all"){
+    const featured=contents.filter(x=>x.is_featured);
+    const films=popularItems("film"),series=popularItems("serie"),anime=popularItems("anime");
+    const critics=contents.filter(x=>Number(x.rating||0)>=8.5).sort((a,b)=>Number(b.rating||0)-Number(a.rating||0));
+    const news=recentFilms();
+    const resume=Object.entries(getWatchState()).filter(([,v])=>v?.progress>0).sort((a,b)=>(b[1]?.lastWatched||0)-(a[1]?.lastWatched||0)).map(([id])=>contents.find(x=>String(x.id)===String(id))).filter(Boolean);
+    $("content").innerHTML=`<div class="catalog-intro"><span class="intro-line"></span><div><span class="intro-kicker">VOTRE UNIVERS NEXORA</span><p>Des histoires à découvrir, sélectionnées pour vous.</p></div></div>`
+      +(resume.length?section("Reprendre la lecture",resume,"","","row"):"")
+      +section("Tendances",featured.length?featured:contents.slice(0,10),"","", "row")
+      +section("Films populaires",films,"Tout voir","popular-film")
+      +section("Séries populaires",series,"Tout voir","popular-serie")
+      +section("Animés populaires",anime,"Tout voir","popular-anime")
+      +section("Salués par la critique",critics,"Tout voir","trend")
+      +section("Nouveautés",news,"Tout voir","new");
+  }else{
+    renderCatalogView("ranking");
+    return;
+  }
+  bindCards();
+}
 
-function setHero(item){if(!item)return;$("heroBackdrop").style=bgStyle(item,"backdrop");$("heroType").textContent=`${labelType(item.type)}${item.genre?" · "+item.genre.toUpperCase():""}`;$("heroTitle").textContent=item.title;$("heroMeta").innerHTML=[item.year,item.duration_minutes?`${item.duration_minutes} min`:null,item.rating?`<strong>${escapeHtml(item.rating)}</strong>`:null].filter(Boolean).map(x=>typeof x==="string"&&x.startsWith("<strong")?x:`<span>${escapeHtml(x)}</span>`).join("<i>•</i>");$("heroDesc").textContent=item.description||"Découvrez cette histoire sur NEXORA.";$("heroProgress").style.width=item.is_new?"58%":item.is_featured?"42%":"28%";$("heroWatch").onclick=()=>openPlayer(item.id);$("heroInfo").onclick=()=>openModal(item.id);$("heroList").onclick=()=>toggleList(item.title);$("heroList").innerHTML=inList(item.title)?"✓ Dans ma liste":"<span>＋</span> Ma liste"}
+let heroTimer=null;
+let heroItems=[];
+let heroIndex=0;
+
+function stopHeroCarousel(){
+  if(heroTimer){clearInterval(heroTimer);heroTimer=null;}
+  heroItems=[];heroIndex=0;
+}
+function renderHeroDots(){
+  const dots=$("heroDots");
+  if(!dots)return;
+  dots.innerHTML=heroItems.slice(0,8).map((item,index)=>`<button type="button" class="hero-dot ${index===heroIndex?"active":""}" data-hero-index="${index}" aria-label="Afficher ${escapeAttr(item.title)}"></button>`).join("");
+  dots.querySelectorAll("[data-hero-index]").forEach(dot=>dot.addEventListener("click",()=>{
+    heroIndex=Number(dot.dataset.heroIndex);
+    setHero(heroItems[heroIndex]);
+    renderHeroDots();
+    restartHeroTimer();
+  }));
+}
+function restartHeroTimer(){
+  if(heroTimer)clearInterval(heroTimer);
+  if(heroItems.length<2)return;
+  heroTimer=setInterval(()=>{
+    heroIndex=(heroIndex+1)%heroItems.length;
+    setHero(heroItems[heroIndex]);
+    renderHeroDots();
+  },6500);
+}
+function startHeroCarousel(pool){
+  stopHeroCarousel();
+  heroItems=(pool||[]).filter(Boolean).slice(0,8);
+  if(!heroItems.length)return;
+  heroIndex=0;
+  setHero(heroItems[0]);
+  renderHeroDots();
+  restartHeroTimer();
+}
+
+function setHero(item){
+  if(!item)return;
+  $("heroBackdrop").style=bgStyle(item,"backdrop");
+  $("heroType").textContent=`${labelType(item.type)}${item.genre?" · "+item.genre.toUpperCase():""}`;
+  $("heroTitle").textContent=item.title;
+  $("heroMeta").innerHTML=[item.year,item.duration_minutes?`${item.duration_minutes} min`:null,item.rating?`<strong>${escapeHtml(item.rating)}</strong>`:null].filter(Boolean).map(x=>typeof x==="string"&&x.startsWith("<strong")?x:`<span>${escapeHtml(x)}</span>`).join("<i>•</i>");
+  $("heroDesc").textContent=item.description||"Découvrez cette histoire sur NEXORA.";
+  $("heroProgress").style.width="0%";
+  $("heroWatch").onclick=()=>openPlayer(item.id);
+  $("heroInfo").onclick=()=>openModal(item.id);
+  $("heroList").onclick=()=>toggleList(item.title);
+  $("heroList").innerHTML=inList(item.title)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
+}
+
+let activeView
 let activeView="home";
 let activePerson=null;
 
