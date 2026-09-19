@@ -891,3 +891,58 @@ body.player-open{overflow:hidden}
   box-sizing:border-box !important;
   text-align:left !important;
 }
+
+
+/* NEXORA — correction structurelle finale du cadre poster */
+.catalog-grid .card{
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:auto !important;
+  aspect-ratio:auto !important;
+  overflow:hidden !important;
+  box-sizing:border-box !important;
+}
+.catalog-grid .poster{
+  position:relative !important;
+  inset:auto !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:100% !important;
+  height:auto !important;
+  aspect-ratio:2 / 3 !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  box-sizing:border-box !important;
+  background:#0b0d12 !important;
+}
+.catalog-grid .poster-img{
+  position:static !important;
+  inset:auto !important;
+  display:block !important;
+  flex:0 0 auto !important;
+  width:100% !important;
+  height:100% !important;
+  max-width:100% !important;
+  max-height:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  transform:none !important;
+}
+.catalog-grid .shade{
+  position:absolute !important;
+  inset:0 !important;
+  z-index:2 !important;
+  pointer-events:none !important;
+}
+.catalog-grid .card-info{
+  position:relative !important;
+  z-index:3 !important;
+  width:100% !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+}
