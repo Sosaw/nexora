@@ -149,6 +149,7 @@
 .player-source-empty{color:#aaa;font-size:13px}
 .season-panel[hidden]{display:none!important}
 .season-tab{cursor:pointer;position:relative;z-index:5;pointer-events:auto}
+}
 
 /* NEXORA Player — immersive full-screen layout inspired by modern streaming players */
 body.player-open{overflow:hidden}
