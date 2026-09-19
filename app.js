@@ -395,7 +395,7 @@ function restartHeroTimer(){
     progress.style.transition="none";
     progress.style.width="0%";
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      progress.style.transition="width 15s linear";
+      progress.style.transition="width 5s linear";
       progress.style.width="100%";
     }));
   }
@@ -408,11 +408,11 @@ function restartHeroTimer(){
       nextProgress.style.transition="none";
       nextProgress.style.width="0%";
       requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        nextProgress.style.transition="width 15s linear";
+        nextProgress.style.transition="width 5s linear";
         nextProgress.style.width="100%";
       }));
     }
-  },15000);
+  },5000);
 }
 function startHeroCarousel(pool){
   stopHeroCarousel();
