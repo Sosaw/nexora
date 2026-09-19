@@ -1024,7 +1024,7 @@
   .ad-gate-warning { display: flex !important; align-items: flex-start !important; gap: 12px !important; background: rgba(239,68,68,0.08) !important; border: 1px solid rgba(239,68,68,0.22) !important; border-radius: 12px !important; padding: 12px 14px !important; text-align: left !important; margin-bottom: 22px !important; }
   .ad-gate-warning p { margin: 0 !important; font-size: 12px !important; color: #fca5a5 !important; line-height: 1.5 !important; }
   .ad-gate-btn { width: 100% !important; padding: 14px 20px !important; border-radius: 14px !important; font-size: 15px !important; font-weight: 800 !important; cursor: pointer !important; border: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 8px !important; }
-  .ad-btn-gold { background: #d4a359 !important; color: #121212 !important; }
+  .ad-btn-gold { background: #fff !important; color: #121212 !important; }
   .ad-btn-green { background: #c5ff3d !important; color: #07080b !important; box-shadow: 0 0 20px rgba(197, 255, 61, 0.4) !important; }
   .ad-gate-footer { margin-top: 18px !important; font-size: 11.5px !important; color: #71717a !important; }
 </style>
@@ -1086,8 +1086,7 @@
       }
     }
     if (e.target && e.target.id === 'adGateClose') {
-      document.getElementById('adGateModal').classList.add('hidden');
-      currentStep = 0;
+      window.history.back();
     }
   });
 
