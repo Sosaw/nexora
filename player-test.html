@@ -410,7 +410,7 @@
 <body>
 
   <div class="player-root" id="playerRoot">
-    <video id="videoEl" playsinline></video>
+    <video id="videoEl" playsinline crossorigin="anonymous"></video>
     <div class="click-surface" id="clickSurface"></div>
 
     <div class="ui-layer" id="uiLayer">
@@ -584,6 +584,7 @@
 
     let globalSeriesData = null;
     let hlsInstance = null;
+    let externalSubtitleTracks = [];
     let idleTimer = null;
     let clickTimeout = null;
     
@@ -989,14 +990,138 @@
     window.addEventListener('mousemove', resetIdle);
     window.addEventListener('click', resetIdle);
 
+    function desactiverSousTitres() {
+      Array.from(video.textTracks || []).forEach(track => {
+        track.mode = 'disabled';
+      });
+      if (hlsInstance) {
+        hlsInstance.subtitleTrack = -1;
+        hlsInstance.subtitleDisplay = false;
+      }
+    }
+
+    function appliquerSousTitres(subtitles) {
+      externalSubtitleTracks = Array.isArray(subtitles)
+        ? subtitles.filter(track => track && track.url)
+        : [];
+
+      video.querySelectorAll('track[data-nexora-subtitle]').forEach(track => track.remove());
+
+      externalSubtitleTracks.forEach((track, index) => {
+        const element = document.createElement('track');
+        element.kind = 'subtitles';
+        element.src = track.url;
+        element.srclang = track.language && track.language !== 'und' ? track.language : 'und';
+        element.label = track.label || track.language || `Sous-titre ${index + 1}`;
+        element.dataset.nexoraSubtitle = 'true';
+        element.default = false;
+        video.appendChild(element);
+      });
+
+      mettreAJourSousTitres();
+    }
+
+    function selectionnerSousTitreExterne(trackIndex, menuItem, label) {
+      desactiverSousTitres();
+
+      const tracks = Array.from(video.textTracks || []);
+      const track = tracks[trackIndex];
+      if (!track) return;
+
+      track.mode = 'showing';
+      document.querySelectorAll('#subsList .menu-item').forEach(item => item.classList.remove('selected'));
+      menuItem.classList.add('selected');
+      document.getElementById('metaSubsLabel').innerText = `${label} ›`;
+    }
+
+    function mettreAJourSousTitres() {
+      const container = document.getElementById('subsList');
+      container.innerHTML = '';
+
+      const offDiv = document.createElement('div');
+      const hasExternal = externalSubtitleTracks.length > 0;
+      const hasHls = Boolean(
+        hlsInstance &&
+        Array.isArray(hlsInstance.allSubtitleTracks) &&
+        hlsInstance.allSubtitleTracks.length
+      );
+
+      const anyShowing = Array.from(video.textTracks || []).some(track => track.mode === 'showing')
+        || Boolean(hlsInstance && hlsInstance.subtitleTrack !== -1 && hlsInstance.subtitleDisplay);
+
+      offDiv.className = `menu-item ${!anyShowing ? 'selected' : ''}`;
+      offDiv.onclick = () => {
+        desactiverSousTitres();
+        document.querySelectorAll('#subsList .menu-item').forEach(item => item.classList.remove('selected'));
+        offDiv.classList.add('selected');
+        document.getElementById('metaSubsLabel').innerText = 'Désactivés ›';
+      };
+      offDiv.innerHTML = '<span>Désactivés</span><span class="check-icon">✓</span>';
+      container.appendChild(offDiv);
+
+      if (hasExternal) {
+        externalSubtitleTracks.forEach((track, index) => {
+          const label = track.label || track.language || `Sous-titre ${index + 1}`;
+          const div = document.createElement('div');
+          const nativeTrack = Array.from(video.textTracks || [])[index];
+          const isSelected = Boolean(nativeTrack && nativeTrack.mode === 'showing');
+
+          div.className = `menu-item ${isSelected ? 'selected' : ''}`;
+          div.onclick = () => selectionnerSousTitreExterne(index, div, label);
+          div.innerHTML = `<span>${label}</span><span class="check-icon">✓</span>`;
+          container.appendChild(div);
+
+          if (isSelected) {
+            document.getElementById('metaSubsLabel').innerText = `${label} ›`;
+          }
+        });
+      }
+
+      if (hasHls) {
+        hlsInstance.allSubtitleTracks.forEach((track, index) => {
+          let nomLangue = track.name || track.lang || `Sous-titre ${index + 1}`;
+          const normalizedName = nomLangue.toLowerCase();
+          if (track.lang === 'fr' || normalizedName.includes('fre') || normalizedName.includes('fra')) nomLangue = 'Français';
+          if (track.lang === 'en' || normalizedName.includes('eng')) nomLangue = 'English';
+
+          const isSelected = Boolean(track.default) && hlsInstance.subtitleTrack === -1;
+          const div = document.createElement('div');
+          div.className = `menu-item ${isSelected ? 'selected' : ''}`;
+          div.onclick = () => {
+            desactiverSousTitres();
+            const selected = hlsInstance.setSubtitleOption(track);
+            if (selected) {
+              hlsInstance.subtitleDisplay = true;
+              document.querySelectorAll('#subsList .menu-item').forEach(item => item.classList.remove('selected'));
+              div.classList.add('selected');
+              document.getElementById('metaSubsLabel').innerText = `${nomLangue} ›`;
+            }
+          };
+          div.innerHTML = `<span>${nomLangue}</span><span class="check-icon">✓</span>`;
+          container.appendChild(div);
+
+          if (isSelected) {
+            document.getElementById('metaSubsLabel').innerText = `${nomLangue} ›`;
+          }
+        });
+      }
+
+      if (!hasExternal && !hasHls) {
+        document.getElementById('metaSubsLabel').innerText = 'Désactivés ›';
+      }
+    }
+
     function startHls(url) {
       if (hlsInstance) hlsInstance.destroy();
+      video.querySelectorAll('track[data-nexora-subtitle]').forEach(track => track.remove());
+
       if (Hls.isSupported()) {
         hlsInstance = new Hls();
         hlsInstance.loadSource(url);
         hlsInstance.attachMedia(video);
+        appliquerSousTitres(externalSubtitleTracks);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-          mettreAJourPistesAudio(); 
+          mettreAJourPistesAudio();
           mettreAJourSousTitres();
           playIconSvg.innerHTML = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
         });
@@ -1005,6 +1130,7 @@
         hlsInstance.on(Hls.Events.SUBTITLE_TRACK_LOADED, mettreAJourSousTitres);
       } else { // Fallback Safari HLS ou direct MP4
         video.src = url;
+        appliquerSousTitres(externalSubtitleTracks);
         playIconSvg.innerHTML = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
       }
     }
@@ -1018,15 +1144,21 @@
       // Si une URL de vidéo directe est transmise (depuis Supabase / URL param)
       const directUrl = urlParams.get('video_url');
       if (directUrl) {
+        externalSubtitleTracks = [];
         startHls(directUrl);
         return;
       }
 
       try {
-  const res = await fetch(`https://nexora-extractor.onrender.com/api/extract?tmdb_id=${tmdbId}&type=${mediaType}&season=${seasonNumber}&episode=${episodeNumber}`);
+        const res = await fetch(`https://nexora-extractor.onrender.com/api/extract?tmdb_id=${tmdbId}&type=${mediaType}&season=${seasonNumber}&episode=${episodeNumber}`);
         const data = await res.json();
-        if (data.success && data.streamUrl) startHls(data.streamUrl);
-      } catch (e) { console.error(e); }
+        if (data.success && data.streamUrl) {
+          externalSubtitleTracks = Array.isArray(data.subtitles) ? data.subtitles : [];
+          startHls(data.streamUrl);
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
