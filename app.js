@@ -60,8 +60,19 @@ function renderEpisodes(item, season=1){
   const selectedSeason=keys.some(k=>String(k)===String(season))?String(season):String(keys[0]);
   return `<div class="series-episodes" data-series-episodes="${escapeAttr(item.id)}">
     <div class="season-head"><div><span class="row-eyebrow">SAISONS & ÉPISODES</span><h3>Saisons et épisodes</h3></div><span class="season-count">${keys.length} saison${keys.length>1?'s':''}</span></div>
-    <div class="season-tabs" role="tablist" aria-label="Choisir une saison">
-      ${keys.map(k=>{const active=String(k)===selectedSeason;return `<button class="season-tab ${active?'active':''}" data-season-tab="${escapeAttr(k)}" aria-selected="${active?'true':'false'}" aria-controls="season-panel-${escapeAttr(item.id)}-${escapeAttr(k)}" type="button">Saison ${escapeHtml(k)}</button>`}).join('')}
+    <div class="season-picker" data-season-picker>
+      <button class="season-picker-trigger" type="button" data-season-picker-trigger aria-expanded="false" aria-haspopup="listbox">
+        <span class="season-picker-current">Saison ${escapeHtml(selectedSeason)}</span>
+        <span class="season-picker-count">${Array.isArray(seasons[selectedSeason])?seasons[selectedSeason].length:0} épisode${(Array.isArray(seasons[selectedSeason])?seasons[selectedSeason].length:0)>1?'s':''}</span>
+        <span class="season-picker-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <div class="season-picker-menu" data-season-picker-menu role="listbox" aria-label="Choisir une saison" hidden>
+        ${keys.map(k=>{
+          const active=String(k)===selectedSeason;
+          const count=Array.isArray(seasons[k])?seasons[k].length:0;
+          return `<button class="season-tab season-picker-option ${active?'active':''}" data-season-tab="${escapeAttr(k)}" aria-selected="${active?'true':'false'}" aria-controls="season-panel-${escapeAttr(item.id)}-${escapeAttr(k)}" role="option" type="button"><span>Saison ${escapeHtml(k)}</span><small>${count} épisode${count>1?'s':''}</small><b aria-hidden="true">${active?'✓':''}</b></button>`;
+        }).join('')}
+      </div>
     </div>
     <div class="all-season-episodes">
       ${keys.map(k=>{const active=String(k)===selectedSeason;const raw=Array.isArray(seasons[k])?seasons[k]:[];const eps=raw.map((ep,i)=>normalizeEpisode(ep,i,item,k));return `<section id="season-panel-${escapeAttr(item.id)}-${escapeAttr(k)}" class="season-panel ${active?'active':''}" data-season-panel="${escapeAttr(k)}" ${active?'':'hidden'}>
@@ -733,25 +744,60 @@ function bindEpisodeControls(){
   if(window.__nexoraEpisodeControlsBound)return;
   window.__nexoraEpisodeControlsBound=true;
   document.addEventListener("click",function(event){
-    const seasonBtn=event.target.closest ? event.target.closest("button[data-season-tab]") : null;
-    if(seasonBtn){
+    const pickerTrigger=event.target.closest ? event.target.closest("[data-season-picker-trigger]") : null;
+    const pickerOption=event.target.closest ? event.target.closest("button[data-season-tab]") : null;
+    if(pickerTrigger){
       event.preventDefault();
       event.stopPropagation();
-      const root=seasonBtn.closest(".series-episodes");
+      const picker=pickerTrigger.closest("[data-season-picker]");
+      if(!picker)return;
+      const menu=picker.querySelector("[data-season-picker-menu]");
+      const isOpen=menu&&!menu.hidden;
+      document.querySelectorAll("[data-season-picker-menu]").forEach(other=>{other.hidden=true;other.closest("[data-season-picker]")?.querySelector("[data-season-picker-trigger]")?.setAttribute("aria-expanded","false");});
+      if(menu){
+        menu.hidden=isOpen;
+        pickerTrigger.setAttribute("aria-expanded",isOpen?"false":"true");
+      }
+      return;
+    }
+    if(pickerOption){
+      event.preventDefault();
+      event.stopPropagation();
+      const root=pickerOption.closest(".series-episodes");
       if(!root)return;
-      const season=String(seasonBtn.getAttribute("data-season-tab")||"");
+      const picker=pickerOption.closest("[data-season-picker]");
+      const season=String(pickerOption.getAttribute("data-season-tab")||"");
       root.querySelectorAll("button[data-season-tab]").forEach(btn=>{
         const active=String(btn.getAttribute("data-season-tab"))===season;
         btn.classList.toggle("active",active);
         btn.setAttribute("aria-selected",active?"true":"false");
+        if(btn.matches("[role=option]")){const mark=btn.querySelector("b");if(mark)mark.textContent=active?"✓":"";}
       });
-      root.querySelectorAll("[data-season-panel]").forEach(panel=>{
-        const active=String(panel.getAttribute("data-season-panel"))===season;
-        panel.classList.toggle("active",active);
-        panel.hidden=!active;
+      const menu=picker?.querySelector("[data-season-picker-menu]");
+      if(picker){
+        const current=picker.querySelector(".season-picker-current");
+        const countText=pickerOption.querySelector("small")?.textContent||"";
+        const trigger=picker.querySelector("[data-season-picker-trigger]");
+        if(current)current.textContent=`Saison ${season}`;
+        const countNode=picker.querySelector(".season-picker-count");
+        if(countNode)countNode.textContent=countText;
+        if(trigger)trigger.setAttribute("aria-expanded","false");
+        if(menu)menu.hidden=true;
+      }
+      root.querySelectorAll("[data-season-panel]").forEach(panelEl=>{
+        const active=String(panelEl.getAttribute("data-season-panel"))===season;
+        panelEl.classList.toggle("active",active);
+        panelEl.hidden=!active;
       });
       return;
     }
+    if(!event.target.closest?.("[data-season-picker]")){
+      document.querySelectorAll("[data-season-picker-menu]").forEach(menu=>{
+        menu.hidden=true;
+        menu.closest("[data-season-picker]")?.querySelector("[data-season-picker-trigger]")?.setAttribute("aria-expanded","false");
+      });
+    }
+
     const relatedBtn=event.target.closest ? event.target.closest("button[data-related-detail]") : null;
     if(relatedBtn){
       event.preventDefault();
