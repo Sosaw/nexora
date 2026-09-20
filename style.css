@@ -407,7 +407,7 @@ body.player-open{overflow:hidden}
   .brand{font-size:21px;letter-spacing:3px}
 }
 
-/* NEXORA — épisodes et recommandations améliorés */
+/* NEXORA — épisodes et recommandations : cartes 3 colonnes */
 .season-picker{position:relative;z-index:30;width:min(235px,100%);margin:18px 0 24px}
 .season-picker-trigger{width:100%;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;padding:11px 13px;border:1px solid rgba(215,255,145,.55);border-radius:10px;background:rgba(18,20,25,.96);color:#fff;cursor:pointer;font:inherit;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .season-picker-trigger:hover,.season-picker-trigger[aria-expanded="true"]{background:rgba(28,31,37,.98);border-color:rgba(215,255,145,.8)}
@@ -424,7 +424,20 @@ body.player-open{overflow:hidden}
 .season-picker-option small{font-size:10px;color:#8c8a84;white-space:nowrap}
 .season-picker-option b{font-size:13px;color:#d7ff91;text-align:center}
 .season-panel[hidden]{display:none!important}
-.episode-list{display:flex;flex-direction:column;gap:10px}
+.episode-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.episode{position:relative;display:flex;flex-direction:column;min-width:0;overflow:hidden;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.025);transition:border-color .2s,background .2s,transform .2s}
+.episode:hover{border-color:rgba(215,255,145,.3);background:rgba(255,255,255,.045);transform:translateY(-2px)}
+.episode-number{position:absolute;z-index:3;top:12px;left:12px;display:grid;place-items:center;min-width:34px;height:25px;padding:0 8px;border-radius:7px;background:rgba(7,8,11,.82);color:#d7ff91;font-size:11px;font-weight:900;text-align:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.episode-thumb{position:relative;display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:0;background:#151820 center/cover no-repeat;overflow:hidden;cursor:pointer;padding:0}
+.episode-thumb:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.5),transparent 60%);opacity:.8}
+.episode-thumb span{position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:rgba(215,255,145,.95);color:#0b0d10;font-size:14px;opacity:0;transition:opacity .2s,transform .2s}
+.episode-thumb:hover span{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+.episode-info{position:relative;min-width:0;padding:14px 14px 56px}
+.episode-info h4{margin:0 0 7px;font-size:15px;line-height:1.35;color:#f3f4f6}
+.episode-info p{margin:0 0 9px;color:#aeb4c0;font-size:12px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.episode-meta{font-size:10px;color:#737b89}
+.episode-play{position:absolute;right:14px;bottom:14px;width:38px;height:38px;border:1px solid rgba(255,255,255,.13);border-radius:50%;background:rgba(255,255,255,.06);color:#fff;cursor:pointer;transition:.2s}
+.episode-play:hover{background:#d7ff91;color:#0b0d10;border-color:#d7ff91}
 .episode{display:grid;grid-template-columns:42px 190px minmax(0,1fr) 42px;gap:16px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.025);transition:border-color .2s,background .2s,transform .2s}
 .episode:hover{border-color:rgba(215,255,145,.3);background:rgba(255,255,255,.045);transform:translateY(-1px)}
 .episode-number{font-size:16px;font-weight:900;color:#777f8d;text-align:center}
@@ -449,8 +462,8 @@ body.player-open{overflow:hidden}
 .related-detail-body strong{display:block;font-size:14px;margin-bottom:6px}
 .related-detail-body>span{display:block;color:#8d95a3;font-size:10px;line-height:1.4}
 .related-detail-body p{margin:9px 0 0;color:#aeb4c0;font-size:11px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-@media(max-width:800px){.episode{grid-template-columns:30px 145px minmax(0,1fr) 38px;gap:11px}.related-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.episode{grid-template-columns:1fr 38px;gap:10px}.episode-number{display:none}.episode-thumb{grid-column:1/2}.episode-info{grid-column:1/2}.episode-play{grid-column:2;grid-row:1 / span 2;align-self:center}.related-detail-grid{grid-template-columns:1fr}}
+@media(max-width:1000px){.episode-list{grid-template-columns:repeat(2,minmax(0,1fr))}.related-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.episode-list{grid-template-columns:1fr}.related-detail-grid{grid-template-columns:1fr}.episode-info{padding:13px 13px 54px}.episode-play{right:13px;bottom:13px}}
 
 /* NEXORA — recherche : source unique */
 .search-area{display:flex;align-items:center;gap:8px;min-width:0;position:relative}
