@@ -605,6 +605,20 @@ function showHomeView({updateHistory=true}={}){
   render();window.scrollTo({top:0,behavior:"smooth"});
 }
 
+function showPageLoader(){
+  const loader=$("pageLoader");
+  if(!loader)return;
+  loader.classList.remove("hidden");
+  loader.setAttribute("aria-hidden","false");
+}
+
+function hidePageLoader(){
+  const loader=$("pageLoader");
+  if(!loader)return;
+  loader.classList.add("hidden");
+  loader.setAttribute("aria-hidden","true");
+}
+
 function renderDetailLoading(title="Chargement…"){
   $("hero")?.classList.add("hidden");$("status")?.classList.add("hidden");
   $("content").innerHTML=`<section class="detail-page"><button class="detail-back" id="detailBack">← Retour</button><div class="detail-loading"><div class="detail-spinner"></div><p>${escapeHtml(title)}</p></div></section>`;
@@ -1103,6 +1117,7 @@ async function fetchAllContents(){
 }
 
 async function loadContents(){
+  showPageLoader();
   if ($("status")) {
     $("status").innerHTML='<span class="status-dot"></span> Chargement du catalogue…';
   }
@@ -1140,6 +1155,8 @@ async function loadContents(){
   }else{
     render();
   }
+
+  hidePageLoader();
 
   // Charger le reste du catalogue en arrière-plan
   fetchAllContents().then(allContents=>{
