@@ -402,8 +402,6 @@ function startHeroCarousel(pool){
   stopHeroCarousel();
   heroItems=(pool||[]).filter(Boolean).slice(0,8);
   if(!heroItems.length){
-    const progress=$("heroProgress");
-    if(progress)progress.style.width="0%";
     return;
   }
   heroIndex=0;
