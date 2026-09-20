@@ -250,7 +250,7 @@
     .settings-menu {
       position: absolute;
       bottom: 80px;
-      right: 120px;
+      right: 36px;
       width: 310px;
       background: linear-gradient(135deg, rgba(20, 24, 18, 0.97) 0%, rgba(14, 16, 12, 0.98) 100%);
       border: 1px solid rgba(194, 248, 44, 0.12);
@@ -433,13 +433,7 @@
           <button class="icon-btn" onclick="togglePip()" title="Créer une fenêtre" aria-label="Créer une fenêtre">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><rect x="12" y="11" width="7" height="6" rx="1"></rect></svg>
           </button>
-          <button class="icon-btn" id="settingsBtn" onclick="toggleSettings(event)" title="Paramètres" aria-label="Paramètres">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
-          <button class="icon-btn" id="infoBtn" onclick="window.history.back()" title="Informations" aria-label="Informations">
+          <button class="icon-btn" id="infoBtn" onclick="openContentInfo()" title="Informations" aria-label="Informations">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
           </button>
         </div>
@@ -481,6 +475,12 @@
           </div>
 
           <div class="controls-right">
+          <button class="icon-btn" id="settingsBtn" onclick="toggleSettings(event)" title="Paramètres" aria-label="Paramètres">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
             <button class="icon-btn" id="episodesBtn" style="display:none;" onclick="toggleDrawer(event)" title="Épisodes" aria-label="Épisodes">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
             </button>
@@ -648,6 +648,11 @@
     function openPanel(panelId) {
       document.querySelectorAll('.menu-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(panelId).classList.add('active');
+    }
+
+    function openContentInfo() {
+      const targetType = mediaType === 'tv' ? 'tv' : 'movie';
+      window.location.href = `index.html?tmdb_id=${encodeURIComponent(tmdbId)}&type=${encodeURIComponent(targetType)}`;
     }
 
     function toggleSettings(e) {
@@ -1191,6 +1196,12 @@
   .ep-thumb{width:92px;height:54px}
   .ep-name{font-size:11px}
   .ep-tag{font-size:9px}
+  .controls-right #settingsBtn{
+    position:fixed;
+    top:12px;
+    right:45px;
+    z-index:20;
+  }
   .settings-menu{
     top:58px;bottom:auto;right:10px;
     width:min(300px,calc(100vw - 20px));
