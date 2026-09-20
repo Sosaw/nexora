@@ -717,7 +717,10 @@
       const offDiv = document.createElement('div');
       offDiv.className = `menu-item ${isOffSelected ? 'selected' : ''}`;
       offDiv.onclick = () => {
-        if (hlsInstance) hlsInstance.subtitleTrack = -1;
+        if (hlsInstance) {
+          hlsInstance.subtitleTrack = -1;
+          hlsInstance.subtitleDisplay = false;
+        }
         document.querySelectorAll('#subsList .menu-item').forEach(m => m.classList.remove('selected'));
         offDiv.classList.add('selected');
         document.getElementById('metaSubsLabel').innerText = `Désactivés ›`;
@@ -725,20 +728,34 @@
       offDiv.innerHTML = `<span>Désactivés</span><span class="check-icon">✓</span>`;
       container.appendChild(offDiv);
 
-      if (!hlsInstance || !hlsInstance.subtitleTracks) return;
+      if (!hlsInstance) return;
 
-      hlsInstance.subtitleTracks.forEach((track, index) => {
+      // HLS.js distingue les pistes du groupe actif de toutes les pistes du manifest.
+      // Vidzy peut exposer les sous-titres dans un autre groupe : utiliser allSubtitleTracks
+      // pour les afficher, puis setSubtitleOption() pour sélectionner la bonne piste.
+      const tracks = Array.isArray(hlsInstance.allSubtitleTracks)
+        ? hlsInstance.allSubtitleTracks
+        : [];
+
+      if (!tracks.length) return;
+
+      tracks.forEach((track, index) => {
         let nomLangue = track.name || track.lang || `Sous-titre ${index + 1}`;
-        if (track.lang === 'fr' || nomLangue.toLowerCase().includes('fre') || nomLangue.toLowerCase().includes('fra')) nomLangue = 'Français';
-        if (track.lang === 'en' || nomLangue.toLowerCase().includes('eng')) nomLangue = 'English';
-        const isSelected = (hlsInstance.subtitleTrack === index);
+        const normalizedName = nomLangue.toLowerCase();
+        if (track.lang === 'fr' || normalizedName.includes('fre') || normalizedName.includes('fra')) nomLangue = 'Français';
+        if (track.lang === 'en' || normalizedName.includes('eng')) nomLangue = 'English';
+
+        const isSelected = Boolean(track.default) && hlsInstance.subtitleTrack === -1;
         const div = document.createElement('div');
         div.className = `menu-item ${isSelected ? 'selected' : ''}`;
         div.onclick = () => {
-          hlsInstance.subtitleTrack = index;
-          document.querySelectorAll('#subsList .menu-item').forEach(m => m.classList.remove('selected'));
-          div.classList.add('selected');
-          document.getElementById('metaSubsLabel').innerText = `${nomLangue} ›`;
+          const selected = hlsInstance.setSubtitleOption(track);
+          if (selected) {
+            hlsInstance.subtitleDisplay = true;
+            document.querySelectorAll('#subsList .menu-item').forEach(m => m.classList.remove('selected'));
+            div.classList.add('selected');
+            document.getElementById('metaSubsLabel').innerText = `${nomLangue} ›`;
+          }
         };
         div.innerHTML = `<span>${nomLangue}</span><span class="check-icon">✓</span>`;
         container.appendChild(div);
