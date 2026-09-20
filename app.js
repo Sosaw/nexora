@@ -93,7 +93,10 @@ function toggleList(title){
   const next=list.includes(title)?list.filter(x=>x!==title):[...list,title];
   saveList(next);
   if(activeView==="home"){
-    if($("heroList")) $("heroList").innerHTML=next.includes(title)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
+    if($("heroList")){
+      const heroTitle=activeHeroItem?.title;
+      $("heroList").innerHTML=heroTitle && next.includes(heroTitle)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
+    }
     document.querySelectorAll("[data-list-title]").forEach(button=>{
       if(button.dataset.listTitle===title){
         const listed=next.includes(title);
@@ -367,10 +370,11 @@ function render(){
 let heroTimer=null;
 let heroItems=[];
 let heroIndex=0;
+let activeHeroItem=null;
 
 function stopHeroCarousel(){
   if(heroTimer){clearInterval(heroTimer);heroTimer=null;}
-  heroItems=[];heroIndex=0;
+  heroItems=[];heroIndex=0;activeHeroItem=null;
 }
 function renderHeroDots(){
   const dots=$("heroDots");
@@ -386,32 +390,12 @@ function renderHeroDots(){
 function restartHeroTimer(){
   if(heroTimer)clearInterval(heroTimer);
   if(heroItems.length<2){
-    const progress=$("heroProgress");
-    if(progress)progress.style.width="0%";
     return;
-  }
-  const progress=$("heroProgress");
-  if(progress){
-    progress.style.transition="none";
-    progress.style.width="0%";
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      progress.style.transition="width 5s linear";
-      progress.style.width="100%";
-    }));
   }
   heroTimer=setInterval(()=>{
     heroIndex=(heroIndex+1)%heroItems.length;
     setHero(heroItems[heroIndex]);
     renderHeroDots();
-    const nextProgress=$("heroProgress");
-    if(nextProgress){
-      nextProgress.style.transition="none";
-      nextProgress.style.width="0%";
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        nextProgress.style.transition="width 5s linear";
-        nextProgress.style.width="100%";
-      }));
-    }
   },5000);
 }
 function startHeroCarousel(pool){
@@ -473,12 +457,12 @@ function scheduleHeroTitleFit(){
 
 function setHero(item){
   if(!item)return;
+  activeHeroItem=item;
   $("heroBackdrop").style=bgStyle(item,"backdrop");
   $("heroType").textContent=`${labelType(item.type)}${item.genre?" · "+item.genre.toUpperCase():""}`;
   $("heroTitle").textContent=item.title;
   $("heroMeta").innerHTML=[item.year,item.duration_minutes?`${item.duration_minutes} min`:null,item.rating?`<strong>${escapeHtml(item.rating)}</strong>`:null].filter(Boolean).map(x=>typeof x==="string"&&x.startsWith("<strong")?x:`<span>${escapeHtml(x)}</span>`).join("<i>•</i>");
   $("heroDesc").textContent=item.description||"Découvrez cette histoire sur NEXORA.";
-  $("heroProgress").style.width="0%";
   $("heroWatch").onclick=()=>openPlayer(item.id);
   $("heroList").onclick=()=>toggleList(item.title);
   $("heroInfo").onclick=()=>openDetail(item.id);
