@@ -275,7 +275,7 @@ function renderCatalogView(tab="ranking",options={}){
   const resumeItems=catalogTabItems("resume");
   const labels={ranking:"Les plus regardés",popular:"Populaires",comedie:"Comédie",action:"Action",drame:"Drame",sf:"Science-fiction",aventure:"Aventure"};
   const label=labels[tab]||"Sélection";
-  const resumeSection=currentFilter!=="mylist"&&tab!=="popular"&&resumeItems.length?section("Reprendre la lecture",resumeItems,"",currentFilter,"row"):"";
+  const resumeSection=currentFilter!=="mylist"&&currentFilter!=="new"&&tab!=="popular"&&resumeItems.length?section("Reprendre la lecture",resumeItems,"",currentFilter,"row"):"";
   const tabsSection=currentFilter!=="mylist"?`<div class="catalog-tabs-label">EXPLORER PAR CATÉGORIE</div>${catalogTabs(tab==="popular"?"ranking":tab)}`:"";
   const title=currentFilter==="mylist"?"Ma liste":label;
   $("content").innerHTML=`<div class="catalog-intro compact"><span class="intro-line"></span><div><span class="intro-kicker">${names[currentFilter]||"CATALOGUE"}</span><p>${currentFilter==="mylist"?"Retrouvez uniquement les titres que vous avez ajoutés à votre liste.":"Explorez votre catalogue NEXORA."}</p></div></div>${resumeSection}${tabsSection}${section(title,items,"",currentFilter,"grid")||`<div class="empty"><span>✦</span><h3>${currentFilter==="mylist"?"Votre liste est vide":"Aucun titre dans cette catégorie"}</h3><p>${currentFilter==="mylist"?"Ajoutez des films ou séries avec le bouton + Ma liste.":"Votre sélection apparaîtra ici au fil de vos lectures."}</p></div>`}`;
@@ -1014,6 +1014,11 @@ async function loadContents(){
 
   contents=dbContents.map(normalizeContent).filter(isAllowedContent);
 
+  const requestedDetailParams=new URLSearchParams(window.location.search);
+  const requestedTmdbId=requestedDetailParams.get("tmdb_id");
+  const requestedType=requestedDetailParams.get("type")||"movie";
+  const requestedDetail=!!requestedTmdbId;
+
   if ($("status")) {
     $("status").innerHTML=`<span class="status-dot"></span> Catalogue disponible · ${contents.length} contenu(s)`;
     $("status").className="status ok";
@@ -1022,7 +1027,12 @@ async function loadContents(){
   const hero=contents.find(x=>x.is_featured)||contents[0];
   if(hero) setHero(hero);
 
-  render();
+  if(requestedDetail){
+    const requestedItem=contents.find(x=>String(x.tmdb_id)===String(requestedTmdbId));
+    openDetail(requestedItem?.id||`tmdb-${requestedType}-${requestedTmdbId}`);
+  }else{
+    render();
+  }
 
   // Charger le reste du catalogue en arrière-plan
   fetchAllContents().then(allContents=>{
@@ -1032,7 +1042,7 @@ async function loadContents(){
       const updatedHero=contents.find(x=>x.is_featured)||contents[0];
       if(updatedHero) setHero(updatedHero);
 
-      render();
+      if(!requestedDetail || activeView!=="detail") render();
 
       if ($("status")) {
         $("status").innerHTML=`<span class="status-dot"></span> Catalogue disponible · ${contents.length} contenu(s)`;
