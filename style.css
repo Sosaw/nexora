@@ -762,3 +762,35 @@ body.player-open{overflow:hidden}
     max-width: calc(100vw - 480px);
   }
 }
+
+/* NEXORA — chargement initial : écran neutre pendant le chargement du catalogue */
+.page-loader{
+  position:fixed;
+  inset:0;
+  z-index:100000;
+  display:grid;
+  place-items:center;
+  background:#07080b;
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+  transition:opacity .2s ease,visibility .2s ease;
+}
+.page-loader.hidden{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+.page-loader-inner{
+  display:grid;
+  justify-items:center;
+  gap:12px;
+  color:#858a94;
+  font-size:15px;
+  font-weight:500;
+}
+.page-loader-spinner{
+  width:34px;
+  height:34px;
+  flex:none;
+}
