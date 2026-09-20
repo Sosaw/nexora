@@ -922,7 +922,7 @@ function openPlayer(id, initialSeason=1, initialEpisode=1){
   });
   if(directVideoUrl) params.set('video_url', directVideoUrl);
 
-  window.location.href = `player-test.html?${params.toString()}`;
+  window.location.href = `/player-test.html?${params.toString()}`;
 }
 function closePlayer(){const video=$("playerVideo");if(window.__nexoraHls){window.__nexoraHls.destroy();window.__nexoraHls=null;}video.pause();video.removeAttribute('src');video.load();document.body.classList.remove('player-open');$("playerModal").classList.add('hidden');$("playerModal").setAttribute('aria-hidden','true');}
 
