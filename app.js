@@ -521,7 +521,7 @@ async function waitForInitialVisuals(){
     });
     await Promise.all(tasks);
   })();
-  await Promise.race([work,new Promise(resolve=>setTimeout(resolve,850))]);
+  await Promise.race([work,new Promise(resolve=>setTimeout(resolve,3500))]);
 }
 
 function stopHeroCarousel(){
