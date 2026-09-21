@@ -110,6 +110,11 @@
       cursor: pointer;
       font-size: 12px;
     }
+    .ep-selector button:disabled {
+      opacity: 0.3;
+      cursor: default;
+      pointer-events: none;
+    }
 
     /* --- Barre Basse --- */
     .bottom-bar {
@@ -421,9 +426,9 @@
           </button>
           <span id="contentTitle">Chargement...</span>
           <div class="ep-selector" id="epSelectorGroup">
-            <button onclick="prevEp()">❮</button>
+            <button class="ep-nav-btn" id="prevEpBtn" onclick="prevEp()" aria-label="Épisode précédent">❮</button>
             <span id="seasonEpCode">S01E01</span>
-            <button onclick="nextEp()">❯</button>
+            <button class="ep-nav-btn" id="nextEpBtn" onclick="nextEp()" aria-label="Épisode suivant">❯</button>
           </div>
         </div>
         <div class="top-right">
@@ -819,6 +824,7 @@
         }
       }
 
+      mettreAJourNavigationEpisodes();
       afficherTiroirTMDB(globalSeriesData.name, seasonData.episodes || []);
     }
 
@@ -836,17 +842,69 @@
       });
     }
 
-    function lancerEpisode(s, ep) {
-      seasonNumber = s; episodeNumber = ep;
-      episodesDrawer.classList.remove('open');
-      const validSeasons = (globalSeriesData.seasons || []).filter(s => s.season_number > 0);
-      remplirMenuSaisons(validSeasons);
-      chargerSaisonSpecifique(seasonNumber, episodeNumber);
-      loadStream();
+    function construireUrlEpisode(s, ep) {
+      const params = new URLSearchParams({
+        id: tmdbId,
+        type: mediaType,
+        season: String(s),
+        episode: String(ep)
+      });
+      return `${window.location.origin}/player-test.html?${params.toString()}`;
     }
 
-    function prevEp() { if (episodeNumber > 1) lancerEpisode(seasonNumber, episodeNumber - 1); }
-    function nextEp() { if (hasNextEp) lancerEpisode(nextSNum, nextEpNum); }
+    function obtenirEpisodePrecedent() {
+      if (episodeNumber > 1) {
+        return { season: seasonNumber, episode: episodeNumber - 1 };
+      }
+
+      const previousSeason = (globalSeriesData?.seasons || [])
+        .filter(s => s.season_number < seasonNumber && s.episode_count > 0)
+        .sort((a, b) => b.season_number - a.season_number)[0];
+
+      if (previousSeason) {
+        return {
+          season: previousSeason.season_number,
+          episode: previousSeason.episode_count
+        };
+      }
+
+      return null;
+    }
+
+    function mettreAJourNavigationEpisodes() {
+      const prevBtn = document.getElementById('prevEpBtn');
+      const nextBtn = document.getElementById('nextEpBtn');
+      if (!prevBtn || !nextBtn) return;
+
+      const previousEpisode = obtenirEpisodePrecedent();
+      prevBtn.disabled = !previousEpisode;
+      nextBtn.disabled = !hasNextEp;
+    }
+
+    function naviguerVersEpisode(s, ep) {
+      if (!Number.isInteger(Number(s)) || !Number.isInteger(Number(ep)) || Number(s) <= 0 || Number(ep) <= 0) {
+        return;
+      }
+
+      window.location.href = construireUrlEpisode(Number(s), Number(ep));
+    }
+
+    function lancerEpisode(s, ep) {
+      naviguerVersEpisode(s, ep);
+    }
+
+    function prevEp() {
+      const previousEpisode = obtenirEpisodePrecedent();
+      if (previousEpisode) {
+        naviguerVersEpisode(previousEpisode.season, previousEpisode.episode);
+      }
+    }
+
+    function nextEp() {
+      if (hasNextEp) {
+        naviguerVersEpisode(nextSNum, nextEpNum);
+      }
+    }
 
     function declencherCompteARebours() {
       if (!hasNextEp) return;
@@ -958,15 +1016,26 @@
       }
     });
 
+    function mettreAJourIconeLecture() {
+      const enLecture = !video.paused && !video.ended;
+      playIconSvg.innerHTML = enLecture
+        ? '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>'
+        : '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
+    }
+
     function togglePlay() {
-      if (video.paused) {
-        video.play();
-        playIconSvg.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
+      if (video.paused || video.ended) {
+        video.play().catch(() => {});
       } else {
         video.pause();
-        playIconSvg.innerHTML = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
       }
     }
+
+    video.addEventListener('play', mettreAJourIconeLecture);
+    video.addEventListener('playing', mettreAJourIconeLecture);
+    video.addEventListener('pause', mettreAJourIconeLecture);
+    video.addEventListener('ended', mettreAJourIconeLecture);
+    mettreAJourIconeLecture();
 
     function seek(sec) { video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + sec)); }
     async function togglePip() { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (document.pictureInPictureEnabled) await video.requestPictureInPicture(); }
@@ -1046,7 +1115,7 @@
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
           mettreAJourPistesAudio();
           mettreAJourSousTitres();
-          playIconSvg.innerHTML = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
+          mettreAJourIconeLecture();
         });
         hlsInstance.on(Hls.Events.AUDIO_TRACK_LOADED, mettreAJourPistesAudio);
         hlsInstance.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, mettreAJourSousTitres);
@@ -1054,7 +1123,7 @@
       } else { // Fallback Safari HLS ou direct MP4
         video.src = url;
         appliquerSousTitres(externalSubtitleTracks);
-        playIconSvg.innerHTML = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
+        mettreAJourIconeLecture();
       }
     }
 
