@@ -573,7 +573,7 @@ function renderHeroDots(){
   }).join("");
 
   dots.querySelectorAll("[data-hero-index]").forEach(dot=>dot.addEventListener("click",()=>{
-    goToHero(Number(dot.dataset.heroIndex),{fromClick:true});
+    goToHero(Number(dot.dataset.heroIndex));
   }));
 }
 
@@ -727,7 +727,7 @@ function animateHeroTransition(item,direction=1){
   });
 }
 
-function goToHero(nextIndex,{direction=null,animate=true,fromClick=false}={}){
+function goToHero(nextIndex,{direction=null,animate=true}={}){
   if(!heroItems.length)return;
   const normalized=(nextIndex+heroItems.length)%heroItems.length;
   const current=heroIndex;
@@ -774,10 +774,6 @@ function scheduleHeroTimer(delay=5000){
     heroTimerDeadline=0;
     goToHero(heroIndex+1,{direction:1,animate:true});
   },safeDelay);
-}
-
-function restartHeroTimer(){
-  scheduleHeroTimer(5000);
 }
 
 let heroLoadRun=0;
