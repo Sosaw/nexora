@@ -406,10 +406,11 @@ function syncRowScrollControls(list){
   const shell=list?.closest(".row-cards-shell");
   if(!shell)return;
   const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
-  const overflowing=maxScroll>8;
-  shell.classList.toggle("has-left",overflowing);
+  const atLeft=list.scrollLeft<=10;
+  const overflowing=maxScroll>10;
+  shell.classList.toggle("has-left",overflowing&&!atLeft);
   shell.classList.toggle("has-right",overflowing);
-  shell.querySelector(".row-scroll-left")?.toggleAttribute("disabled",!overflowing);
+  shell.querySelector(".row-scroll-left")?.toggleAttribute("disabled",!overflowing||atLeft);
   shell.querySelector(".row-scroll-right")?.toggleAttribute("disabled",!overflowing);
 }
 
@@ -1848,34 +1849,3 @@ bindEpisodeControls();
   window.addEventListener('DOMContentLoaded', () => {
     if (window.location.pathname.includes('player')) {
       const vid = document.getElementById('playerVideo');
-      if (vid) vid.pause();
-
-      setTimeout(() => {
-        window.runAdGate(() => {
-          const v = document.getElementById('playerVideo');
-          if (v) {
-            v.muted = false;
-            v.play().catch(() => {});
-          }
-        });
-      }, 400);
-
-      const epSelect = document.getElementById('playerEpisodeSelect');
-      if (epSelect) {
-        epSelect.addEventListener('change', () => {
-          const v = document.getElementById('playerVideo');
-          if (v) v.pause();
-          window.runAdGate(() => {
-            if (v) {
-              v.muted = false;
-              v.play().catch(() => {});
-            }
-          });
-        });
-      }
-    }
-  });
-})();
-
-document.addEventListener("keydown",event=>{if(event.key==="Escape" && $('playerModal') && !$('playerModal').classList.contains("hidden")){closePlayer();}});
-if(typeof loadContents === 'function') loadContents();
