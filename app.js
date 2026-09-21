@@ -449,7 +449,7 @@ function bindCards(){
   })();
 }
 
-function render({preserveHero=false}={} ) {
+function render({preserveHero=false}={}){
   activeView="home";
   const isMyList=currentFilter==="mylist";
   document.body.classList.remove("catalog-only");
