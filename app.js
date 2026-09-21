@@ -190,6 +190,7 @@ function titleLogoKey(item){
 }
 const titleLogoCache=new Map();
 const titleLogoRequests=new Map();
+const titleLogoImageCache=new Map();
 
 function pickTitleLogo(details){
   const logos=Array.isArray(details?.images?.logos)?details.images.logos.filter(x=>x?.file_path):[];
@@ -213,28 +214,20 @@ async function loadTitleLogo(item){
   if(!key)return "";
   if(titleLogoCache.has(key))return titleLogoCache.get(key);
   if(!titleLogoRequests.has(key)){
-    const parts=key.split(":");
-    const type=parts[0];
-    const id=Number(parts[1]);
+    const parts=key.split(":"); const type=parts[0]; const id=Number(parts[1]);
     titleLogoRequests.set(key,(async()=>{
       try{
         const data=await fetchNexoraDetails({action:"content",type,tmdb_id:id});
         const logo=pickTitleLogo(data?.details||{});
         if(logo){
-          const image=new Image();
-          image.decoding="async";
-          image.src=logo;
-          try{await image.decode();}catch{}
+          const image=new Image(); image.decoding="async"; image.src=logo;
+          try{await image.decode();}catch{} titleLogoImageCache.set(key,image);
         }
-        titleLogoCache.set(key,logo);
-        return logo;
+        titleLogoCache.set(key,logo); return logo;
       }catch(error){
         console.warn("Logo TMDB indisponible",key,error);
-        titleLogoCache.set(key,"");
-        return "";
-      }finally{
-        titleLogoRequests.delete(key);
-      }
+        titleLogoCache.set(key,""); titleLogoImageCache.delete(key); return "";
+      }finally{ titleLogoRequests.delete(key); }
     })());
   }
   try{return await titleLogoRequests.get(key);}catch{return "";}
@@ -549,9 +542,9 @@ function setHero(item){
   activeHeroItem=item;
   $("heroBackdrop").style=bgStyle(item,"backdrop");
   $("heroType").textContent=labelType(item.type)+(item.genre?" · "+item.genre.toUpperCase():"");
-  const heroLogo=$("heroTitle");
-  const logo=titleLogoCache.get(titleLogoKey(item))||"";
-  heroLogo.innerHTML=logo ? '<img src="'+escapeAttr(logo)+'" alt="'+escapeAttr(item.title)+'" decoding="async">':"";
+  const heroLogo=$("heroTitle"); const logoKey=titleLogoKey(item); const logo=titleLogoCache.get(logoKey)||"";
+  heroLogo.replaceChildren();
+  if(logo){ const cachedImage=titleLogoImageCache.get(logoKey); const heroImage=cachedImage||new Image(); heroImage.alt=item.title||""; heroImage.decoding="async"; if(!cachedImage)heroImage.src=logo; heroLogo.appendChild(heroImage); }
   heroLogo.setAttribute("aria-label",item.title||"");
   $("heroMeta").innerHTML=[item.year,item.duration_minutes?item.duration_minutes+" min":null,item.rating?"<strong>"+escapeHtml(item.rating)+"</strong>":null].filter(Boolean).map(x=>typeof x==="string"&&x.startsWith("<strong")?x:"<span>"+escapeHtml(x)+"</span>").join("<i>•</i>");
   $("heroDesc").textContent=item.description||"Découvrez cette histoire sur NEXORA.";
@@ -789,10 +782,21 @@ async function openDetail(id,{updateHistory=true}={}){
     const runtime=d.runtime||((d.episode_run_time||[])[0]);
     const genres=(d.genres||[]).map(x=>x.name).slice(0,4).join(" · ")||item.genre||"";
     const meta=[release?new Date(release).getFullYear():item.year,runtime?`${runtime} min`:null,genres,d.vote_average?`${Number(d.vote_average).toFixed(1)}/10`:item.rating?`${item.rating}/10`:null].filter(Boolean).join(" · ");
+    const detailType=labelType(item.type);
+    const detailTitle=d.title||d.name||item.title;
+    const detailLogo=pickTitleLogo(d);
+    if(detailLogo&&!titleLogoImageCache.has("detail:"+detailLogo)){
+      const detailImage=new Image(); detailImage.decoding="async"; detailImage.src=detailLogo;
+      try{await detailImage.decode();}catch{} titleLogoImageCache.set("detail:"+detailLogo,detailImage);
+    }
+    const detailMetaHtml="<strong class=\"detail-meta-type\">"+escapeHtml(detailType)+"</strong>"+(meta?"<span class=\"detail-meta-divider\">·</span><span>"+escapeHtml(meta)+"</span>":"");
+    const detailTitleMarkup=detailLogo
+      ? "<div class=\"detail-title-logo\"><img src=\""+escapeAttr(detailLogo)+"\" alt=\""+escapeAttr(detailTitle)+"\" decoding=\"async\"></div>"
+      : "<h1 class=\"detail-title-fallback\">"+escapeHtml(detailTitle)+"</h1>";
     const backdropUrl=d.backdrop_path?`https://image.tmdb.org/t/p/original${d.backdrop_path}`:item.backdrop_url;
     const posterUrl=d.poster_path?`https://image.tmdb.org/t/p/w500${d.poster_path}`:item.poster_url;
     const detailSeasons=(item.type==='serie'||item.type==='anime')?renderEpisodes(item,1):'';
-    $("content").innerHTML=`<section class="detail-page"><button class="detail-back" id="detailBack">← Retour</button><div class="detail-hero" style="--detail-bg:url('${escapeAttr(backdropUrl||posterUrl||"")}')"><div class="detail-hero-shade"></div><div class="detail-hero-content"><div class="detail-poster" style="${posterUrl?`background-image:url('${escapeAttr(posterUrl)}')`:''}"></div><div class="detail-copy"><div class="detail-kicker">${labelType(item.type)}</div><h1>${escapeHtml(d.title||d.name||item.title)}</h1><div class="detail-meta">${escapeHtml(meta)}</div><p>${escapeHtml(d.overview||item.description||"Aucune description disponible.")}</p><div class="detail-actions"><button class="btn btn-light" id="detailWatch">▶ Regarder</button><a class="btn btn-glass detail-trailer-btn" id="detailTrailer" href="${escapeAttr(getTrailerUrl(trailer,d.title||d.name||item.title))}" target="_blank" rel="noopener noreferrer">▣ Bande-annonce</a><button class="btn btn-glass" id="detailList">＋ Ma liste</button></div></div></div></div>${detailSeasons}${renderCast(cast)}${renderRelatedContent(item)}</section>`;
+    $("content").innerHTML=`<section class="detail-page"><button class="detail-back" id="detailBack">← Retour</button><div class="detail-hero" style="--detail-bg:url('${escapeAttr(backdropUrl||posterUrl||"")}')"><div class="detail-hero-shade"></div><div class="detail-hero-content"><div class="detail-poster" style="${posterUrl?`background-image:url('${escapeAttr(posterUrl)}')`:''}"></div><div class="detail-copy">${detailTitleMarkup}<div class="detail-meta">${detailMetaHtml}</div><p>${escapeHtml(d.overview||item.description||"Aucune description disponible.")}</p><div class="detail-actions"><button class="btn btn-light" id="detailWatch">▶ Regarder</button><a class="btn btn-glass detail-trailer-btn" id="detailTrailer" href="${escapeAttr(getTrailerUrl(trailer,detailTitle))}" target="_blank" rel="noopener noreferrer">▣ Bande-annonce</a><button class="btn btn-glass" id="detailList">＋ Ma liste</button></div></div></div></div>${detailSeasons}${renderCast(cast)}${renderRelatedContent(item)}</section>`;
     $("detailBack").addEventListener("click",handleNexoraBack);$("detailWatch").addEventListener("click",()=>openPlayer(item.id));$("detailList").addEventListener("click",()=>{toggleList(item.title);$("detailList").textContent=inList(item.title)?"✓ Dans ma liste":"＋ Ma liste"});
     document.querySelectorAll("[data-person]").forEach(btn=>btn.addEventListener("click",()=>openPerson(Number(btn.dataset.person))));
     bindEpisodeControls();
@@ -1270,9 +1274,6 @@ async function loadContents(){
     $("status").className="status ok";
   }
 
-  const hero=contents.find(x=>x.is_featured)||contents[0];
-  if(hero) setHero(hero);
-
   if(requestedDetail){
     const requestedItem=contents.find(x=>String(x.tmdb_id)===String(requestedTmdbId));
     openDetail(requestedItem?.id||`tmdb-${requestedType}-${requestedTmdbId}`,{updateHistory:false});
@@ -1289,9 +1290,6 @@ async function loadContents(){
   fetchAllContents().then(allContents=>{
     if(allContents.length>contents.length){
       contents=allContents.map(normalizeContent).filter(isAllowedContent);
-
-      const updatedHero=contents.find(x=>x.is_featured)||contents[0];
-      if(updatedHero) setHero(updatedHero);
 
       if(!requestedDetail || activeView!=="detail") render();
 
