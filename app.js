@@ -449,7 +449,7 @@ function bindCards(){
   })();
 }
 
-function render(){
+function render({preserveHero=false}={}){
   activeView="home";
   const isMyList=currentFilter==="mylist";
   document.body.classList.remove("catalog-only");
@@ -469,7 +469,11 @@ function render(){
     renderCatalogView("ranking",{hideHero:true});
     return;
   }
-  startHeroCarousel(heroCandidates(currentFilter));
+  if(preserveHero&&currentFilter==="all"&&activeHeroItem&&heroItems.length){
+    updateHeroCarousel(heroCandidates(currentFilter));
+  }else{
+    startHeroCarousel(heroCandidates(currentFilter));
+  }
   if(currentFilter==="all"){
     const featured=contents.filter(x=>x.is_featured);
     const films=popularItems("film"),series=popularItems("serie"),anime=popularItems("anime");
@@ -491,6 +495,7 @@ function render(){
 }
 
 let heroTimer=null;
+let heroTransitionCleanup=null;
 let heroItems=[];
 let heroIndex=0;
 let activeHeroItem=null;
@@ -526,8 +531,14 @@ async function waitForInitialVisuals(){
 
 function stopHeroCarousel(){
   if(heroTimer){clearInterval(heroTimer);heroTimer=null;}
+  if(heroTransitionCleanup){
+    heroTransitionCleanup();
+    heroTransitionCleanup=null;
+  }
   heroLoadRun++;
-  heroItems=[];heroIndex=0;activeHeroItem=null;
+  heroItems=[];
+  heroIndex=0;
+  activeHeroItem=null;
   heroReadyPromise=Promise.resolve();
 }
 
@@ -536,30 +547,128 @@ function renderHeroDots(){
   if(!dots)return;
   dots.innerHTML=heroItems.slice(0,8).map((item,index)=>`<button type="button" class="hero-dot ${index===heroIndex?"active":""}" data-hero-index="${index}" aria-label="Afficher ${escapeAttr(item.title)}"></button>`).join("");
   dots.querySelectorAll("[data-hero-index]").forEach(dot=>dot.addEventListener("click",()=>{
-    heroIndex=Number(dot.dataset.heroIndex);
-    setHero(heroItems[heroIndex]);
-    renderHeroDots();
-    restartHeroTimer();
+    goToHero(Number(dot.dataset.heroIndex));
   }));
 }
-function restartHeroTimer(){
-  if(heroTimer)clearInterval(heroTimer);
-  if(heroItems.length<2){
+
+function heroItemKey(item){
+  if(!item)return "";
+  if(item.id!==undefined&&item.id!==null)return String(item.id);
+  const type=normalizeContentType(item);
+  const tmdbId=Number(item.tmdb_id);
+  return Number.isFinite(tmdbId)&&tmdbId>0 ? `${type}:${tmdbId}` : String(item.title||"");
+}
+
+function updateHeroCarousel(pool){
+  const nextItems=(pool||[]).filter(Boolean).slice(0,8);
+  if(!nextItems.length){
+    stopHeroCarousel();
     return;
   }
+  const currentKey=heroItemKey(activeHeroItem);
+  const nextIndex=nextItems.findIndex(item=>heroItemKey(item)===currentKey);
+  if(!heroItems.length||!currentKey||nextIndex<0){
+    startHeroCarousel(nextItems);
+    return;
+  }
+  heroItems=nextItems;
+  heroIndex=nextIndex;
+  activeHeroItem=nextItems[nextIndex];
+  renderHeroDots();
+  restartHeroTimer();
+  void Promise.all(heroItems.map(loadTitleLogo)).catch(()=>{});
+}
+
+function animateHeroTransition(item,direction=1){
+  if(!item||heroItems.length<2){
+    setHero(item);
+    return;
+  }
+
+  if(heroTransitionCleanup){
+    heroTransitionCleanup();
+    heroTransitionCleanup=null;
+  }
+
+  const hero=$("hero");
+  const stage=$("heroStage");
+  const currentBackdrop=$("heroBackdrop");
+  if(!hero||!stage||!currentBackdrop){
+    setHero(item);
+    return;
+  }
+
+  const oldStage=stage.cloneNode(true);
+  stripCloneIds(oldStage);
+  oldStage.classList.add("hero-slide","hero-slide-out");
+  oldStage.style.zIndex="1";
+
+  hero.appendChild(oldStage);
+
+  stage.style.transition="none";
+  stage.style.transform=direction>0?"translate3d(100%,0,0)":"translate3d(-100%,0,0)";
+  stage.classList.add("hero-slide-prep");
+
+  setHero(item);
+
+  let timerId=null;
+  let cleaned=false;
+  const cleanup=()=>{
+    if(cleaned)return;
+    cleaned=true;
+    if(timerId)clearTimeout(timerId);
+    oldStage.remove();
+    stage.classList.remove("hero-slide-prep","hero-slide-in");
+    stage.style.transition="";
+    stage.style.transform="";
+    if(heroTransitionCleanup===cleanup)heroTransitionCleanup=null;
+  };
+  heroTransitionCleanup=cleanup;
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      if(heroTransitionCleanup!==cleanup)return;
+      oldStage.classList.add("is-sliding");
+      stage.classList.add("hero-slide-in");
+      timerId=window.setTimeout(cleanup,620);
+    });
+  });
+}
+
+function goToHero(nextIndex,{direction=null,animate=true}={}){
+  if(!heroItems.length)return;
+  const normalized=(nextIndex+heroItems.length)%heroItems.length;
+  const current=heroIndex;
+  if(normalized===current){
+    restartHeroTimer();
+    return;
+  }
+  heroIndex=normalized;
+  const dir=direction===null ? (normalized>current || (current===heroItems.length-1&&normalized===0) ? 1 : -1) : direction;
+  if(animate)animateHeroTransition(heroItems[heroIndex],dir);
+  else setHero(heroItems[heroIndex]);
+  renderHeroDots();
+  restartHeroTimer();
+}
+
+function restartHeroTimer(){
+  if(heroTimer)clearInterval(heroTimer);
+  heroTimer=null;
+  if(heroItems.length<2)return;
   heroTimer=setInterval(()=>{
-    heroIndex=(heroIndex+1)%heroItems.length;
-    setHero(heroItems[heroIndex]);
-    renderHeroDots();
+    goToHero(heroIndex+1,{direction:1,animate:true});
   },5000);
 }
+
 let heroLoadRun=0;
+
 async function startHeroCarousel(pool){
   stopHeroCarousel();
   const run=++heroLoadRun;
   heroItems=(pool||[]).filter(Boolean).slice(0,8);
   if(!heroItems.length)return;
   heroIndex=0;
+
   heroReadyPromise=(async()=>{
     await Promise.all(heroItems.map(loadTitleLogo));
     if(run!==heroLoadRun)return;
@@ -567,7 +676,12 @@ async function startHeroCarousel(pool){
     renderHeroDots();
     restartHeroTimer();
   })();
+
   await heroReadyPromise;
+}
+
+function stripCloneIds(root){
+  root.querySelectorAll("[id]").forEach(el=>el.removeAttribute("id"));
 }
 
 function setHero(item){
@@ -1325,7 +1439,7 @@ async function loadContents(){
     if(allContents.length>contents.length){
       contents=allContents.map(normalizeContent).filter(isAllowedContent);
 
-      if(!requestedDetail || activeView!=="detail") render();
+      if(!requestedDetail || activeView!=="detail") render({preserveHero:true});
 
       if ($("status")) {
         $("status").innerHTML=`<span class="status-dot"></span> Catalogue disponible · ${contents.length} contenu(s)`;
