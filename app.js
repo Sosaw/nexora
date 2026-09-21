@@ -494,11 +494,41 @@ let heroTimer=null;
 let heroItems=[];
 let heroIndex=0;
 let activeHeroItem=null;
+let heroReadyPromise=Promise.resolve();
+
+function preloadVisualImage(url){
+  if(!url)return Promise.resolve();
+  return new Promise(resolve=>{
+    const image=new Image();
+    image.decoding="async";
+    image.onload=resolve;
+    image.onerror=resolve;
+    image.src=url;
+    if(image.decode) image.decode().then(resolve).catch(()=>{});
+  });
+}
+
+async function waitForInitialVisuals(){
+  const work=(async()=>{
+    await heroReadyPromise;
+    const tasks=[];
+    if(activeHeroItem)tasks.push(preloadVisualImage(imageUrl(activeHeroItem,"backdrop")));
+    document.querySelectorAll(".title-card-poster").forEach(image=>{
+      const rect=image.getBoundingClientRect();
+      if(rect.bottom>=0&&rect.top<=window.innerHeight+120){
+        tasks.push(preloadVisualImage(image.currentSrc||image.src));
+      }
+    });
+    await Promise.all(tasks);
+  })();
+  await Promise.race([work,new Promise(resolve=>setTimeout(resolve,3500))]);
+}
 
 function stopHeroCarousel(){
   if(heroTimer){clearInterval(heroTimer);heroTimer=null;}
   heroLoadRun++;
   heroItems=[];heroIndex=0;activeHeroItem=null;
+  heroReadyPromise=Promise.resolve();
 }
 
 function renderHeroDots(){
@@ -530,11 +560,14 @@ async function startHeroCarousel(pool){
   heroItems=(pool||[]).filter(Boolean).slice(0,8);
   if(!heroItems.length)return;
   heroIndex=0;
-  await Promise.all(heroItems.map(loadTitleLogo));
-  if(run!==heroLoadRun)return;
-  setHero(heroItems[0]);
-  renderHeroDots();
-  restartHeroTimer();
+  heroReadyPromise=(async()=>{
+    await Promise.all(heroItems.map(loadTitleLogo));
+    if(run!==heroLoadRun)return;
+    setHero(heroItems[0]);
+    renderHeroDots();
+    restartHeroTimer();
+  })();
+  await heroReadyPromise;
 }
 
 function setHero(item){
@@ -632,7 +665,7 @@ function findRouteContent(route){
   })||null;
 }
 
-function renderNexoraRoute(route=parseNexoraRoute()){
+async function renderNexoraRoute(route=parseNexoraRoute()){
   if(route.kind==="detail"){
     let item=findRouteContent(route);
     if(!item){
@@ -648,14 +681,14 @@ function renderNexoraRoute(route=parseNexoraRoute()){
         contents.push(item);
       }
     }
-    if(item){openDetail(item.id,{updateHistory:false});return;}
+    if(item){await openDetail(item.id,{updateHistory:false});return;}
     currentFilter=route.type;
     setActiveNav(route.type);
     render();
     return;
   }
   if(route.kind==="person"){
-    openPerson(route.personId,{updateHistory:false});
+    await openPerson(route.personId,{updateHistory:false});
     return;
   }
   navigateToFilter(route.filter,{replace:true,scroll:false});
@@ -1276,14 +1309,15 @@ async function loadContents(){
 
   if(requestedDetail){
     const requestedItem=contents.find(x=>String(x.tmdb_id)===String(requestedTmdbId));
-    openDetail(requestedItem?.id||`tmdb-${requestedType}-${requestedTmdbId}`,{updateHistory:false});
+    await openDetail(requestedItem?.id||`tmdb-${requestedType}-${requestedTmdbId}`,{updateHistory:false});
   }else if(requestedRoute.kind==="detail"||requestedRoute.kind==="person"||requestedRoute.kind==="filter"){
     history.replaceState({...(history.state||{}),nexora:true,path:window.location.pathname}, "", window.location.pathname);
-    renderNexoraRoute(requestedRoute);
+    await renderNexoraRoute(requestedRoute);
   }else{
     render();
   }
 
+  await waitForInitialVisuals();
   hidePageLoader();
 
   // Charger le reste du catalogue en arrière-plan
