@@ -606,40 +606,48 @@ function updateHeroCarousel(pool,scope=currentFilter){
   }
 
   const sameScope=heroScope===scope;
-  const sameSequence=heroSequence(heroItems)===heroSequence(nextItems);
+  if(!heroItems.length||!sameScope){
+    startHeroCarousel(nextItems,scope);
+    return;
+  }
 
-  if(heroItems.length&&sameScope&&sameSequence){
+  const currentKey=heroItemKey(activeHeroItem);
+  const nextIndex=nextItems.findIndex(item=>heroItemKey(item)===currentKey);
+
+  if(nextIndex<0){
+    if(heroTransitionBusy){
+      heroPendingItems=nextItems;
+      heroPendingScope=scope;
+      return;
+    }
     heroItems=nextItems;
-    const currentKey=heroItemKey(activeHeroItem);
-    if(!currentKey){
-      renderHeroDots();
-      return;
-    }
-    const nextIndex=nextItems.findIndex(item=>heroItemKey(item)===currentKey);
-    if(nextIndex<0){
-      startHeroCarousel(nextItems,scope);
-      return;
-    }
-    heroIndex=nextIndex;
-    activeHeroItem=nextItems[nextIndex];
+    heroScope=scope;
+    heroIndex=0;
     renderHeroDots();
-    restartHeroTimer();
-    void Promise.all(heroItems.map(loadTitleLogo)).catch(()=>{});
+    animateHeroTransition(heroItems[0],1);
     return;
   }
 
-  if(heroTransitionBusy){
-    heroPendingItems=nextItems;
-    heroPendingScope=scope;
-    return;
+  const sameSequence=heroSequence(heroItems)===heroSequence(nextItems);
+  heroItems=nextItems;
+  heroIndex=nextIndex;
+  activeHeroItem=nextItems[nextIndex];
+
+  if(!sameSequence)renderHeroDots();
+
+  if(!heroTimer&&!heroTransitionBusy){
+    scheduleHeroTimer(5000);
+    renderHeroDots();
   }
 
-  startHeroCarousel(nextItems,scope);
+  void Promise.all(heroItems.map(loadTitleLogo)).catch(()=>{});
 }
 
 function animateHeroTransition(item,direction=1){
   if(!item||heroItems.length<2){
     setHero(item);
+    scheduleHeroTimer(5000);
+    renderHeroDots();
     return;
   }
 
@@ -650,6 +658,8 @@ function animateHeroTransition(item,direction=1){
   const currentBackdrop=$("heroBackdrop");
   if(!hero||!stage||!currentBackdrop){
     setHero(item);
+    scheduleHeroTimer(5000);
+    renderHeroDots();
     return;
   }
 
@@ -683,18 +693,25 @@ function animateHeroTransition(item,direction=1){
 
     if(transitionToken===heroTransitionToken){
       heroTransitionBusy=false;
+
       const queued=heroQueuedIndex;
       heroQueuedIndex=null;
       if(queued!==null){
         requestAnimationFrame(()=>goToHero(queued,{animate:true}));
-      }else{
-        const pendingItems=heroPendingItems;
-        const pendingScope=heroPendingScope;
-        heroPendingItems=null;
-        heroPendingScope="";
-        if(pendingItems){
-          updateHeroCarousel(pendingItems,pendingScope);
-        }
+        return;
+      }
+
+      const pendingItems=heroPendingItems;
+      const pendingScope=heroPendingScope;
+      heroPendingItems=null;
+      heroPendingScope="";
+      if(pendingItems){
+        updateHeroCarousel(pendingItems,pendingScope);
+      }
+
+      if(!heroTransitionBusy){
+        scheduleHeroTimer(5000);
+        renderHeroDots();
       }
     }
   };
@@ -710,38 +727,57 @@ function animateHeroTransition(item,direction=1){
   });
 }
 
-function goToHero(nextIndex,{direction=null,animate=true}={}){
+function goToHero(nextIndex,{direction=null,animate=true,fromClick=false}={}){
   if(!heroItems.length)return;
   const normalized=(nextIndex+heroItems.length)%heroItems.length;
   const current=heroIndex;
+
   if(normalized===current){
-    restartHeroTimer();
     return;
   }
+
   if(heroTransitionBusy){
     heroQueuedIndex=normalized;
     return;
   }
+
   const targetItem=heroItems[normalized];
-  if(!targetItem||heroItemKey(targetItem)===heroItemKey(heroItems[current])){
-    restartHeroTimer();
+  if(!targetItem)return;
+
+  heroIndex=normalized;
+  const dir=direction===null
+    ? (normalized>current || (current===heroItems.length-1&&normalized===0) ? 1 : -1)
+    : direction;
+
+  if(animate){
+    animateHeroTransition(targetItem,dir);
+  }else{
+    setHero(targetItem);
+    scheduleHeroTimer(5000);
+    renderHeroDots();
+  }
+}
+
+function scheduleHeroTimer(delay=5000){
+  if(heroTimer)clearTimeout(heroTimer);
+  heroTimer=null;
+
+  if(heroItems.length<2){
+    heroTimerDeadline=0;
     return;
   }
-  heroIndex=normalized;
-  const dir=direction===null ? (normalized>current || (current===heroItems.length-1&&normalized===0) ? 1 : -1) : direction;
-  if(animate)animateHeroTransition(heroItems[heroIndex],dir);
-  else setHero(heroItems[heroIndex]);
-  renderHeroDots();
-  restartHeroTimer();
+
+  const safeDelay=Math.max(0,Number(delay)||0);
+  heroTimerDeadline=performance.now()+safeDelay;
+  heroTimer=setTimeout(()=>{
+    heroTimer=null;
+    heroTimerDeadline=0;
+    goToHero(heroIndex+1,{direction:1,animate:true});
+  },safeDelay);
 }
 
 function restartHeroTimer(){
-  if(heroTimer)clearInterval(heroTimer);
-  heroTimer=null;
-  if(heroItems.length<2)return;
-  heroTimer=setInterval(()=>{
-    goToHero(heroIndex+1,{direction:1,animate:true});
-  },5000);
+  scheduleHeroTimer(5000);
 }
 
 let heroLoadRun=0;
@@ -755,11 +791,14 @@ async function startHeroCarousel(pool,scope=currentFilter){
   heroIndex=0;
 
   heroReadyPromise=(async()=>{
-    await Promise.all(heroItems.map(loadTitleLogo));
+    await loadTitleLogo(heroItems[0]);
     if(run!==heroLoadRun)return;
+
     setHero(heroItems[0]);
     renderHeroDots();
-    restartHeroTimer();
+    scheduleHeroTimer(5000);
+
+    void Promise.all(heroItems.slice(1).map(loadTitleLogo)).catch(()=>{});
   })();
 
   await heroReadyPromise;
