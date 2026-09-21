@@ -449,7 +449,7 @@ function bindCards(){
   })();
 }
 
-function render({preserveHero=false}={}){
+function render(){
   activeView="home";
   const isMyList=currentFilter==="mylist";
   document.body.classList.remove("catalog-only");
@@ -469,11 +469,7 @@ function render({preserveHero=false}={}){
     renderCatalogView("ranking",{hideHero:true});
     return;
   }
-  if(preserveHero&&currentFilter==="all"&&activeHeroItem&&heroItems.length){
-    updateHeroCarousel(heroCandidates(currentFilter));
-  }else{
-    startHeroCarousel(heroCandidates(currentFilter));
-  }
+  updateHeroCarousel(heroCandidates(currentFilter),currentFilter);
   if(currentFilter==="all"){
     const featured=contents.filter(x=>x.is_featured);
     const films=popularItems("film"),series=popularItems("serie"),anime=popularItems("anime");
@@ -499,6 +495,12 @@ let heroTransitionCleanup=null;
 let heroItems=[];
 let heroIndex=0;
 let activeHeroItem=null;
+let heroScope="";
+let heroTransitionBusy=false;
+let heroQueuedIndex=null;
+let heroPendingItems=null;
+let heroPendingScope="";
+let heroTransitionToken=0;
 let heroReadyPromise=Promise.resolve();
 
 function preloadVisualImage(url){
@@ -515,7 +517,11 @@ function preloadVisualImage(url){
 
 async function waitForInitialVisuals(){
   const work=(async()=>{
-    await heroReadyPromise;
+    for(let attempt=0;attempt<3;attempt++){
+      const pending=heroReadyPromise;
+      await pending;
+      if(pending===heroReadyPromise)break;
+    }
     const tasks=[];
     if(activeHeroItem)tasks.push(preloadVisualImage(imageUrl(activeHeroItem,"backdrop")));
     document.querySelectorAll(".title-card-poster").forEach(image=>{
@@ -531,6 +537,10 @@ async function waitForInitialVisuals(){
 
 function stopHeroCarousel(){
   if(heroTimer){clearInterval(heroTimer);heroTimer=null;}
+  heroTransitionToken++;
+  heroQueuedIndex=null;
+  heroPendingItems=null;
+  heroPendingScope="";
   if(heroTransitionCleanup){
     heroTransitionCleanup();
     heroTransitionCleanup=null;
@@ -539,6 +549,8 @@ function stopHeroCarousel(){
   heroItems=[];
   heroIndex=0;
   activeHeroItem=null;
+  heroScope="";
+  heroTransitionBusy=false;
   heroReadyPromise=Promise.resolve();
 }
 
@@ -555,9 +567,9 @@ function heroItemKey(item){
   if(!item)return "";
   const type=normalizeContentType(item);
   const tmdbId=Number(item.tmdb_id);
-  if(Number.isFinite(tmdbId)&&tmdbId>0)return `${type}:${tmdbId}`;
-  if(item.id!==undefined&&item.id!==null)return `id:${String(item.id)}`;
-  return `title:${String(item.title||"").trim().toLowerCase()}`;
+  if(Number.isFinite(tmdbId)&&tmdbId>0)return type+":"+tmdbId;
+  if(item.id!==undefined&&item.id!==null)return type+":id:"+String(item.id);
+  return type+":title:"+String(item.title||"").trim().toLowerCase();
 }
 function uniqueHeroItems(pool){
   const seen=new Set();
@@ -568,25 +580,47 @@ function uniqueHeroItems(pool){
     return true;
   });
 }
+function heroSequence(items){
+  return (items||[]).map(heroItemKey).join("|");
+}
 
-function updateHeroCarousel(pool){
+function updateHeroCarousel(pool,scope=currentFilter){
   const nextItems=uniqueHeroItems(pool).slice(0,8);
   if(!nextItems.length){
     stopHeroCarousel();
     return;
   }
-  const currentKey=heroItemKey(activeHeroItem);
-  const nextIndex=nextItems.findIndex(item=>heroItemKey(item)===currentKey);
-  if(!heroItems.length||!currentKey||nextIndex<0){
-    startHeroCarousel(nextItems);
+
+  const sameScope=heroScope===scope;
+  const sameSequence=heroSequence(heroItems)===heroSequence(nextItems);
+
+  if(heroItems.length&&sameScope&&sameSequence){
+    heroItems=nextItems;
+    const currentKey=heroItemKey(activeHeroItem);
+    if(!currentKey){
+      renderHeroDots();
+      return;
+    }
+    const nextIndex=nextItems.findIndex(item=>heroItemKey(item)===currentKey);
+    if(nextIndex<0){
+      startHeroCarousel(nextItems,scope);
+      return;
+    }
+    heroIndex=nextIndex;
+    activeHeroItem=nextItems[nextIndex];
+    renderHeroDots();
+    restartHeroTimer();
+    void Promise.all(heroItems.map(loadTitleLogo)).catch(()=>{});
     return;
   }
-  heroItems=nextItems;
-  heroIndex=nextIndex;
-  activeHeroItem=nextItems[nextIndex];
-  renderHeroDots();
-  restartHeroTimer();
-  void Promise.all(heroItems.map(loadTitleLogo)).catch(()=>{});
+
+  if(heroTransitionBusy){
+    heroPendingItems=nextItems;
+    heroPendingScope=scope;
+    return;
+  }
+
+  startHeroCarousel(nextItems,scope);
 }
 
 function animateHeroTransition(item,direction=1){
@@ -595,10 +629,7 @@ function animateHeroTransition(item,direction=1){
     return;
   }
 
-  if(heroTransitionCleanup){
-    heroTransitionCleanup();
-    heroTransitionCleanup=null;
-  }
+  if(heroTransitionBusy)return;
 
   const hero=$("hero");
   const stage=$("heroStage");
@@ -608,12 +639,13 @@ function animateHeroTransition(item,direction=1){
     return;
   }
 
+  heroTransitionBusy=true;
+  const transitionToken=++heroTransitionToken;
   hero.dataset.heroDirection=direction>0?"next":"prev";
+
   const oldStage=stage.cloneNode(true);
   stripCloneIds(oldStage);
   oldStage.classList.add("hero-slide","hero-slide-out");
-  oldStage.style.zIndex="1";
-
   hero.appendChild(oldStage);
 
   stage.style.transition="none";
@@ -634,12 +666,29 @@ function animateHeroTransition(item,direction=1){
     stage.style.transform="";
     delete hero.dataset.heroDirection;
     if(heroTransitionCleanup===cleanup)heroTransitionCleanup=null;
+
+    if(transitionToken===heroTransitionToken){
+      heroTransitionBusy=false;
+      const queued=heroQueuedIndex;
+      heroQueuedIndex=null;
+      if(queued!==null){
+        requestAnimationFrame(()=>goToHero(queued,{animate:true}));
+      }else{
+        const pendingItems=heroPendingItems;
+        const pendingScope=heroPendingScope;
+        heroPendingItems=null;
+        heroPendingScope="";
+        if(pendingItems){
+          updateHeroCarousel(pendingItems,pendingScope);
+        }
+      }
+    }
   };
   heroTransitionCleanup=cleanup;
 
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
-      if(heroTransitionCleanup!==cleanup)return;
+      if(heroTransitionCleanup!==cleanup||transitionToken!==heroTransitionToken)return;
       oldStage.classList.add("is-sliding");
       stage.classList.add("hero-slide-in");
       timerId=window.setTimeout(cleanup,620);
@@ -653,6 +702,10 @@ function goToHero(nextIndex,{direction=null,animate=true}={}){
   const current=heroIndex;
   if(normalized===current){
     restartHeroTimer();
+    return;
+  }
+  if(heroTransitionBusy){
+    heroQueuedIndex=normalized;
     return;
   }
   const targetItem=heroItems[normalized];
@@ -679,10 +732,11 @@ function restartHeroTimer(){
 
 let heroLoadRun=0;
 
-async function startHeroCarousel(pool){
+async function startHeroCarousel(pool,scope=currentFilter){
   stopHeroCarousel();
   const run=++heroLoadRun;
   heroItems=uniqueHeroItems(pool).slice(0,8);
+  heroScope=scope;
   if(!heroItems.length)return;
   heroIndex=0;
 
