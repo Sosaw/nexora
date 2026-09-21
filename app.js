@@ -284,16 +284,15 @@ function card(item){
   return "<article class=\"title-card\" data-id=\""+escapeAttr(item.id)+"\" data-logo-key=\""+escapeAttr(logoKey)+"\">"+
     "<div class=\"title-card-media\">"+posterMarkup+"</div>"+
     "<div class=\"title-card-shade\"></div>"+
+    "<div class=\"title-card-type-badge\">"+escapeHtml(typeLabel)+"</div>"+
     "<div class=\"title-card-hover-logo\" aria-hidden=\"true\">"+
-      "<div class=\"title-card-hover-type\">"+escapeHtml(typeLabel)+"</div>"+
       "<div class=\"title-card-hover-logo-content\">"+
         "<img class=\"title-card-hover-logo-image\" alt=\"\" hidden>"+
-        "<span class=\"title-card-hover-logo-fallback\">"+escapeHtml(item.title)+"</span>"+
+        "<span class=\"title-card-hover-logo-fallback\" hidden>"+escapeHtml(item.title)+"</span>"+
         "<div class=\"title-card-hover-meta\">"+escapeHtml(hoverMeta)+"</div>"+
       "</div>"+
     "</div>"+
     "<div class=\"title-card-info\">"+
-      "<div class=\"title-card-type\">"+escapeHtml(typeLabel)+"</div>"+
       "<div class=\"title-card-title\">"+escapeHtml(item.title)+"</div>"+
       "<div class=\"title-card-meta\">"+escapeHtml(meta)+"</div>"+
     "</div>"+
