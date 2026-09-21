@@ -208,6 +208,32 @@ function primaryGenre(item){
   const raw=String(item?.genre||"").split(/[·,|]/)[0].trim();
   return raw.replace(/\s*&\s*.+$/,"").trim();
 }
+async function loadTitleLogo(item){
+  const key=titleLogoKey(item);
+  if(!key)return "";
+  if(titleLogoCache.has(key))return titleLogoCache.get(key);
+  if(!titleLogoRequests.has(key)){
+    const parts=key.split(":");
+    const type=parts[0];
+    const id=Number(parts[1]);
+    titleLogoRequests.set(key,(async()=>{
+      try{
+        const data=await fetchNexoraDetails({action:"content",type,tmdb_id:id});
+        const logo=pickTitleLogo(data?.details||{});
+        titleLogoCache.set(key,logo);
+        return logo;
+      }catch(error){
+        console.warn("Logo TMDB indisponible",key,error);
+        titleLogoCache.set(key,"");
+        return "";
+      }finally{
+        titleLogoRequests.delete(key);
+      }
+    })());
+  }
+  try{return await titleLogoRequests.get(key);}catch{return "";}
+}
+
 
 function applyTitleCardLogo(card,logoUrl,loading=false){
   if(!card)return;
@@ -240,36 +266,10 @@ async function hydrateTitleCardLogo(card){
     applyTitleCardLogo(card,"");
     return;
   }
-  if(titleLogoCache.has(key)){
-    applyTitleCardLogo(card,titleLogoCache.get(key));
-    return;
-  }
   applyTitleCardLogo(card,"",true);
-  if(!titleLogoRequests.has(key)){
-    const parts=key.split(":");
-    const type=parts[0];
-    const id=Number(parts[1]);
-    titleLogoRequests.set(key,(async()=>{
-      try{
-        const data=await fetchNexoraDetails({action:"content",type,tmdb_id:id});
-        const logo=pickTitleLogo(data?.details||{});
-        titleLogoCache.set(key,logo);
-        return logo;
-      }catch(error){
-        console.warn("Logo TMDB indisponible",key,error);
-        titleLogoCache.set(key,"");
-        return "";
-      }finally{
-        titleLogoRequests.delete(key);
-      }
-    })());
-  }
-  try{
-    const logo=await titleLogoRequests.get(key);
-    applyTitleCardLogo(card,logo||"");
-  }catch{
-    applyTitleCardLogo(card,"");
-  }
+  const parts=key.split(":");
+  const logo=await loadTitleLogo({type:parts[0],tmdb_id:Number(parts[1])});
+  applyTitleCardLogo(card,logo||"");
 }
 
 function card(item){
@@ -494,8 +494,10 @@ let activeHeroItem=null;
 
 function stopHeroCarousel(){
   if(heroTimer){clearInterval(heroTimer);heroTimer=null;}
+  heroLoadRun++;
   heroItems=[];heroIndex=0;activeHeroItem=null;
 }
+
 function renderHeroDots(){
   const dots=$("heroDots");
   if(!dots)return;
@@ -518,74 +520,36 @@ function restartHeroTimer(){
     renderHeroDots();
   },5000);
 }
-function startHeroCarousel(pool){
+let heroLoadRun=0;
+async function startHeroCarousel(pool){
   stopHeroCarousel();
+  const run=++heroLoadRun;
   heroItems=(pool||[]).filter(Boolean).slice(0,8);
-  if(!heroItems.length){
-    return;
-  }
+  if(!heroItems.length)return;
   heroIndex=0;
+  await loadTitleLogo(heroItems[0]);
+  if(run!==heroLoadRun)return;
   setHero(heroItems[0]);
   renderHeroDots();
   restartHeroTimer();
-}
-
-let heroFitFrame=null;
-
-function fitHeroTitle(){
-  const hero=$("hero"),content=document.querySelector(".hero-content"),title=$("heroTitle");
-  if(!hero||!content||!title||hero.classList.contains("hidden"))return;
-  const mobile=window.matchMedia("(max-width:760px)").matches;
-  const maxSize=mobile?Math.min(54,Math.max(30,window.innerWidth*0.11)):Math.min(104,Math.max(52,window.innerWidth*0.074));
-  const minSize=mobile?18:32;
-  const bottomReserve=mobile?48:88;
-  const topReserve=mobile?10:52;
-  let size=maxSize;
-  title.style.fontSize=`${size}px`;
-  title.style.lineHeight=mobile?".92":".88";
-  title.style.letterSpacing=mobile?"-1.8px":"-4px";
-  title.style.maxWidth="100%";
-  title.style.overflow="visible";
-
-  const availableHeight=Math.max(0,hero.clientHeight-topReserve-bottomReserve);
-  for(let i=0;i<60&&content.scrollHeight>availableHeight&&size>minSize;i++){
-    size=Math.max(minSize,size-2);
-    title.style.fontSize=`${size}px`;
-  }
-
-  if(content.scrollHeight>availableHeight){
-    const overflow=content.scrollHeight-availableHeight;
-    const titleHeight=Math.max(1,title.getBoundingClientRect().height);
-    const correction=Math.max(minSize,size-Math.ceil((overflow/titleHeight)*size));
-    if(correction<size){
-      size=correction;
-      title.style.fontSize=`${size}px`;
-    }
-  }
-}
-
-function scheduleHeroTitleFit(){
-  if(heroFitFrame)cancelAnimationFrame(heroFitFrame);
-  heroFitFrame=requestAnimationFrame(()=>{
-    heroFitFrame=null;
-    fitHeroTitle();
-    requestAnimationFrame(fitHeroTitle);
-  });
+  Promise.all(heroItems.slice(1).map(loadTitleLogo)).catch(()=>{});
 }
 
 function setHero(item){
   if(!item)return;
   activeHeroItem=item;
   $("heroBackdrop").style=bgStyle(item,"backdrop");
-  $("heroType").textContent=`${labelType(item.type)}${item.genre?" · "+item.genre.toUpperCase():""}`;
-  $("heroTitle").textContent=item.title;
-  $("heroMeta").innerHTML=[item.year,item.duration_minutes?`${item.duration_minutes} min`:null,item.rating?`<strong>${escapeHtml(item.rating)}</strong>`:null].filter(Boolean).map(x=>typeof x==="string"&&x.startsWith("<strong")?x:`<span>${escapeHtml(x)}</span>`).join("<i>•</i>");
+  $("heroType").textContent=labelType(item.type)+(item.genre?" · "+item.genre.toUpperCase():"");
+  const heroLogo=$("heroTitle");
+  const logo=titleLogoCache.get(titleLogoKey(item))||"";
+  heroLogo.innerHTML=logo ? '<img src="'+escapeAttr(logo)+'" alt="'+escapeAttr(item.title)+'" decoding="async">':"";
+  heroLogo.setAttribute("aria-label",item.title||"");
+  $("heroMeta").innerHTML=[item.year,item.duration_minutes?item.duration_minutes+" min":null,item.rating?"<strong>"+escapeHtml(item.rating)+"</strong>":null].filter(Boolean).map(x=>typeof x==="string"&&x.startsWith("<strong")?x:"<span>"+escapeHtml(x)+"</span>").join("<i>•</i>");
   $("heroDesc").textContent=item.description||"Découvrez cette histoire sur NEXORA.";
   $("heroWatch").onclick=()=>openPlayer(item.id);
   $("heroList").onclick=()=>toggleList(item.title);
   $("heroInfo").onclick=()=>openDetail(item.id);
   $("heroList").innerHTML=inList(item.title)?"✓ Dans ma liste":"<span>＋</span> Ma liste";
-  scheduleHeroTitleFit();
 }
 
 let activeView="home";
@@ -1231,7 +1195,6 @@ document.addEventListener("click", event => {
 });
 
 window.addEventListener("scroll",()=>$("topbar")?.classList.toggle("scrolled",window.scrollY>30));
-window.addEventListener("resize",()=>scheduleHeroTitleFit());
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closePlayer()}});
 
 db.auth.getSession().then(({data})=>{currentUser=data.session?.user||null;updateAuthUI()});
