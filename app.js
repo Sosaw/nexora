@@ -406,19 +406,50 @@ function syncRowScrollControls(list){
   const shell=list?.closest(".row-cards-shell");
   if(!shell)return;
   const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
-  const atLeft=list.scrollLeft<=8;
-  const atRight=list.scrollLeft>=maxScroll-8;
-  shell.classList.toggle("has-left",!atLeft&&maxScroll>8);
-  shell.classList.toggle("has-right",!atRight&&maxScroll>8);
-  shell.querySelector(".row-scroll-left")?.toggleAttribute("disabled",atLeft||maxScroll<=8);
-  shell.querySelector(".row-scroll-right")?.toggleAttribute("disabled",atRight||maxScroll<=8);
+  const overflowing=maxScroll>8;
+  shell.classList.toggle("has-left",overflowing);
+  shell.classList.toggle("has-right",overflowing);
+  shell.querySelector(".row-scroll-left")?.toggleAttribute("disabled",!overflowing);
+  shell.querySelector(".row-scroll-right")?.toggleAttribute("disabled",!overflowing);
 }
 
 function bindRowScrollControls(root){
   root.querySelectorAll(".row-cards-shell .row-scroll-list").forEach(list=>{
     if(list.dataset.rowScrollBound!=="1"){
       list.dataset.rowScrollBound="1";
-      list.addEventListener("scroll",()=>syncRowScrollControls(list),{passive:true});
+      const originals=[...list.children];
+      if(originals.length>1){
+        const getUnit=()=>{
+          const gap=parseFloat(getComputedStyle(list).gap||"0")||0;
+          const width=originals[0]?.getBoundingClientRect().width||0;
+          return Math.max(1,(width+gap)*originals.length);
+        };
+        const cloneSet=side=>originals.map(card=>{
+          const clone=card.cloneNode(true);
+          clone.dataset.carouselClone="true";
+          clone.dataset.carouselCloneSide=side;
+          clone.setAttribute("aria-hidden","true");
+          return clone;
+        });
+        list.prepend(...cloneSet("before"));
+        list.append(...cloneSet("after"));
+        list._nexoraCarousel={getUnit,originalCount:originals.length};
+        requestAnimationFrame(()=>{
+          list.scrollLeft=getUnit();
+          syncRowScrollControls(list);
+        });
+      }
+      list.addEventListener("scroll",()=>{
+        const carousel=list._nexoraCarousel;
+        if(carousel){
+          const unit=carousel.getUnit();
+          if(unit>1){
+            if(list.scrollLeft<unit*.5)list.scrollLeft+=unit;
+            else if(list.scrollLeft>=unit*1.5)list.scrollLeft-=unit;
+          }
+        }
+        syncRowScrollControls(list);
+      },{passive:true});
       if(typeof ResizeObserver==="function"){
         const observer=new ResizeObserver(()=>syncRowScrollControls(list));
         observer.observe(list);
