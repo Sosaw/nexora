@@ -204,11 +204,17 @@ function pickTitleLogo(details){
   return selected?.file_path ? "https://image.tmdb.org/t/p/w500"+selected.file_path : "";
 }
 
-function applyTitleCardLogo(card,logoUrl){
+function applyTitleCardLogo(card,logoUrl,loading=false){
   if(!card)return;
   const image=card.querySelector(".title-card-hover-logo-image");
   const fallback=card.querySelector(".title-card-hover-logo-fallback");
   if(!image||!fallback)return;
+  if(loading){
+    image.hidden=true;
+    fallback.hidden=true;
+    card.dataset.logoState="loading";
+    return;
+  }
   if(logoUrl){
     image.src=logoUrl;
     image.hidden=false;
@@ -233,7 +239,7 @@ async function hydrateTitleCardLogo(card){
     applyTitleCardLogo(card,titleLogoCache.get(key));
     return;
   }
-  applyTitleCardLogo(card,"");
+  applyTitleCardLogo(card,"",true);
   if(!titleLogoRequests.has(key)){
     const parts=key.split(":");
     const type=parts[0];
@@ -262,6 +268,8 @@ async function hydrateTitleCardLogo(card){
 }
 
 function card(item){
+  const typeLabel=labelType(item.type);
+  const hoverMeta=[typeLabel,item.year,item.genre,item.rating?"★ "+item.rating:null].filter(Boolean).join(" · ");
   const meta=[item.year,item.genre,item.rating?"★ "+item.rating:null].filter(Boolean).join(" · ");
   const poster=imageUrl(item,"poster");
   const posterMarkup=poster?"<img class=\"title-card-poster\" src=\""+escapeAttr(poster)+"\" alt=\"Affiche de "+escapeAttr(item.title)+"\" loading=\"lazy\" decoding=\"async\">":"";
@@ -272,12 +280,13 @@ function card(item){
     "<div class=\"title-card-shade\"></div>"+
     "<div class=\"title-card-hover-logo\" aria-hidden=\"true\">"+
       "<div class=\"title-card-hover-logo-content\">"+
+        "<div class=\"title-card-hover-meta\">"+escapeHtml(hoverMeta)+"</div>"+
         "<img class=\"title-card-hover-logo-image\" alt=\"\" hidden>"+
         "<span class=\"title-card-hover-logo-fallback\">"+escapeHtml(item.title)+"</span>"+
       "</div>"+
     "</div>"+
     "<div class=\"title-card-info\">"+
-      "<div class=\"title-card-type\">"+labelType(item.type)+"</div>"+
+      "<div class=\"title-card-type\">"+typeLabel+"</div>"+
       "<div class=\"title-card-title\">"+escapeHtml(item.title)+"</div>"+
       "<div class=\"title-card-meta\">"+escapeHtml(meta)+"</div>"+
     "</div>"+
