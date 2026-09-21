@@ -491,6 +491,7 @@ function render(){
 }
 
 let heroTimer=null;
+let heroTimerDeadline=0;
 let heroTransitionCleanup=null;
 let heroItems=[];
 let heroIndex=0;
@@ -537,6 +538,7 @@ async function waitForInitialVisuals(){
 
 function stopHeroCarousel(){
   if(heroTimer){clearInterval(heroTimer);heroTimer=null;}
+  heroTimerDeadline=0;
   heroTransitionToken++;
   heroQueuedIndex=null;
   heroPendingItems=null;
@@ -557,9 +559,21 @@ function stopHeroCarousel(){
 function renderHeroDots(){
   const dots=$("heroDots");
   if(!dots)return;
-  dots.innerHTML=heroItems.slice(0,8).map((item,index)=>`<button type="button" class="hero-dot ${index===heroIndex?"active":""}" data-hero-index="${index}" aria-label="Afficher ${escapeAttr(item.title)}"></button>`).join("");
+  if(!heroItems.length)return;
+
+  const now=performance.now();
+  const remaining=heroTimerDeadline>0 ? Math.max(0,heroTimerDeadline-now) : 0;
+  const progress=heroTimerDeadline>0 ? Math.min(1,Math.max(0,1-(remaining/5000))) : 0;
+  const duration=heroTimerDeadline>0 ? Math.round(remaining) : 0;
+
+  dots.innerHTML=heroItems.slice(0,8).map((item,index)=>{
+    const active=index===heroIndex;
+    const style="--hero-progress:"+(active?progress:0)+";--hero-progress-duration:"+(active?duration:0)+"ms";
+    return "<button type=\"button\" class=\"hero-dot "+(active?"active":"")+"\" data-hero-index=\""+index+"\" aria-label=\"Afficher "+escapeAttr(item.title)+"\" style=\""+style+"\"></button>";
+  }).join("");
+
   dots.querySelectorAll("[data-hero-index]").forEach(dot=>dot.addEventListener("click",()=>{
-    goToHero(Number(dot.dataset.heroIndex));
+    goToHero(Number(dot.dataset.heroIndex),{fromClick:true});
   }));
 }
 
