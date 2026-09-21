@@ -782,10 +782,22 @@ body.player-open{overflow:hidden}
 .page-loader-inner{
   display:grid;
   justify-items:center;
-  gap:12px;
+  gap:18px;
   color:#858a94;
   font-size:15px;
   font-weight:500;
+}
+.page-loader-brand{
+  font-size:clamp(42px,6vw,76px);
+  line-height:1;
+  font-weight:900;
+  letter-spacing:6px;
+  color:#fff;
+  text-shadow:0 10px 35px rgba(0,0,0,.45);
+}
+.page-loader-brand b{
+  color:var(--lime);
+  font-weight:900;
 }
 .page-loader-spinner{
   width:34px;
