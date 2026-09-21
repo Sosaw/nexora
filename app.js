@@ -408,8 +408,8 @@ function syncRowScrollControls(list){
   const carousel=list._nexoraCarousel;
   const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
   const overflowing=maxScroll>8;
-  const atStart=list.scrollLeft<=12;
-  const atEnd=list.scrollLeft>=maxScroll-12;
+  const atStart=list.scrollLeft<=8;
+  const atEnd=list.scrollLeft>=maxScroll-8;
   shell.classList.toggle("has-left",overflowing&&!atStart);
   shell.classList.toggle("has-right",overflowing&&!atEnd);
   const showLeft=overflowing&&!atStart;
