@@ -296,7 +296,7 @@ function card(item){
   "</article>";
 }
 
-function section(title,items,suffix="",filter="",layout="row",infinite=true){
+function section(title,items,suffix="",filter="",layout="row"){
   if(!items.length)return"";
   const count=items.length;
   const visible=layout==="grid"?items:items.slice(0,24);
@@ -306,7 +306,7 @@ function section(title,items,suffix="",filter="",layout="row",infinite=true){
     return `<section class="row row-grid-view"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div></div><div class="${listClass}">${visible.map(card).join("")}</div></section>`;
   }
 
-  return `<section class="row"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div><button class="row-link" data-row-filter="${filter}">${suffix||`${count} titre${count>1?"s":""}`} <span>→</span></button></div><div class="row-cards-shell"><button class="row-scroll-control row-scroll-left" type="button" data-row-scroll="-1" aria-label="Défiler ${escapeAttr(title)} vers la gauche">‹</button><div class="${listClass}" data-infinite="${infinite?"true":"false"}">${visible.map(card).join("")}</div><button class="row-scroll-control row-scroll-right" type="button" data-row-scroll="1" aria-label="Défiler ${escapeAttr(title)} vers la droite">›</button></div></section>`;
+  return `<section class="row"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div><button class="row-link" data-row-filter="${filter}">${suffix||`${count} titre${count>1?"s":""}`} <span>→</span></button></div><div class="row-cards-shell"><button class="row-scroll-control row-scroll-left" type="button" data-row-scroll="-1" aria-label="Défiler ${escapeAttr(title)} vers la gauche">‹</button><div class="${listClass}" >${visible.map(card).join("")}</div><button class="row-scroll-control row-scroll-right" type="button" data-row-scroll="1" aria-label="Défiler ${escapeAttr(title)} vers la droite">›</button></div></section>`;
 }
 function getWatchState(){try{return JSON.parse(localStorage.getItem("nexora_watch")||"{}")}catch{return{}}}
 function saveWatchState(state){localStorage.setItem("nexora_watch",JSON.stringify(state))}
