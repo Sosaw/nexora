@@ -412,8 +412,18 @@ function syncRowScrollControls(list){
   const atEnd=list.scrollLeft>=maxScroll-12;
   shell.classList.toggle("has-left",overflowing&&!atStart);
   shell.classList.toggle("has-right",overflowing&&!atEnd);
-  carousel?.leftButton?.toggleAttribute("disabled",!overflowing||atStart);
-  carousel?.rightButton?.toggleAttribute("disabled",!overflowing||atEnd);
+  const showLeft=overflowing&&!atStart;
+  const showRight=overflowing&&!atEnd;
+  carousel?.leftButton?.toggleAttribute("disabled",!showLeft);
+  carousel?.rightButton?.toggleAttribute("disabled",!showRight);
+  if(carousel?.leftButton){
+    carousel.leftButton.hidden=!showLeft;
+    carousel.leftButton.setAttribute("aria-hidden",showLeft?"false":"true");
+  }
+  if(carousel?.rightButton){
+    carousel.rightButton.hidden=!showRight;
+    carousel.rightButton.setAttribute("aria-hidden",showRight?"false":"true");
+  }
 }
 
 function bindRowScrollControls(root){
