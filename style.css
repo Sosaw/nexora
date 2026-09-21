@@ -16,6 +16,33 @@ body.catalog-only main{padding-top:92px}
 @media(max-width:760px){body.catalog-only main{padding-top:116px}.catalog-only .mylist-page{padding-top:18px}.mylist-empty{min-height:180px}}
 
 /* NEXORA — hero : source unique et adaptatif */
+.hero-slide{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  will-change:transform;
+  transform:translate3d(0,0,0);
+}
+.hero-slide-out{
+  transition:transform .52s cubic-bezier(.22,.61,.36,1);
+}
+.hero-slide-out.is-sliding{
+  transform:translate3d(-100%,0,0);
+}
+.hero[data-hero-direction="prev"] .hero-slide-out.is-sliding{
+  transform:translate3d(100%,0,0);
+}
+.hero-slide-in{
+  transition:transform .52s cubic-bezier(.22,.61,.36,1);
+  transform:translate3d(0,0,0)!important;
+}
+.hero-slide-prep .hero-backdrop{
+  transition:none!important;
+}
+.hero-slide-out .hero-content{
+  animation:none!important;
+}
+
 .hero{position:relative;isolation:isolate;height:min(72vh,700px);min-height:560px;display:flex;align-items:flex-end;padding:0 7% 92px;overflow:hidden}
 .hero-backdrop{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat;transform:scale(1.015);animation:heroKenBurns 18s ease-in-out infinite alternate;transition:background-image .5s,opacity .5s}
 .hero-backdrop:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,8,11,.98) 0%,rgba(7,8,11,.83) 18%,rgba(7,8,11,.32) 54%,rgba(7,8,11,.08) 78%,rgba(7,8,11,.48) 100%);z-index:1}
