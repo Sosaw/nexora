@@ -183,24 +183,109 @@ function isAllowedContent(item){
 }
 
 function labelType(type){return ({film:"FILM",serie:"SÉRIE",anime:"ANIMÉ"})[normalizeContentType({type})]||String(type||"").toUpperCase()}
+function titleLogoKey(item){
+  const type=normalizeContentType(item);
+  const tmdbId=Number(item?.tmdb_id);
+  return Number.isFinite(tmdbId)&&tmdbId>0 ? type+":"+tmdbId : "";
+}
+const titleLogoCache=new Map();
+const titleLogoRequests=new Map();
+
+function pickTitleLogo(details){
+  const logos=Array.isArray(details?.images?.logos)?details.images.logos.filter(x=>x?.file_path):[];
+  if(!logos.length)return "";
+  const ordered=[
+    logos.find(x=>String(x.iso_639_1||"").toLowerCase()==="fr"),
+    logos.find(x=>String(x.iso_639_1||"").toLowerCase()==="en"),
+    logos.find(x=>x.iso_639_1===null||x.iso_639_1===""),
+    logos[0]
+  ].filter(Boolean);
+  const selected=ordered[0];
+  return selected?.file_path ? "https://image.tmdb.org/t/p/w500"+selected.file_path : "";
+}
+
+function applyTitleCardLogo(card,logoUrl){
+  if(!card)return;
+  const image=card.querySelector(".title-card-hover-logo-image");
+  const fallback=card.querySelector(".title-card-hover-logo-fallback");
+  if(!image||!fallback)return;
+  if(logoUrl){
+    image.src=logoUrl;
+    image.hidden=false;
+    fallback.hidden=true;
+    card.dataset.logoState="ready";
+  }else{
+    image.removeAttribute("src");
+    image.hidden=true;
+    fallback.hidden=false;
+    card.dataset.logoState="fallback";
+  }
+}
+
+async function hydrateTitleCardLogo(card){
+  if(!card)return;
+  const key=String(card.dataset.logoKey||"");
+  if(!key){
+    applyTitleCardLogo(card,"");
+    return;
+  }
+  if(titleLogoCache.has(key)){
+    applyTitleCardLogo(card,titleLogoCache.get(key));
+    return;
+  }
+  applyTitleCardLogo(card,"");
+  if(!titleLogoRequests.has(key)){
+    const parts=key.split(":");
+    const type=parts[0];
+    const id=Number(parts[1]);
+    titleLogoRequests.set(key,(async()=>{
+      try{
+        const data=await fetchNexoraDetails({action:"content",type,tmdb_id:id});
+        const logo=pickTitleLogo(data?.details||{});
+        titleLogoCache.set(key,logo);
+        return logo;
+      }catch(error){
+        console.warn("Logo TMDB indisponible",key,error);
+        titleLogoCache.set(key,"");
+        return "";
+      }finally{
+        titleLogoRequests.delete(key);
+      }
+    })());
+  }
+  try{
+    const logo=await titleLogoRequests.get(key);
+    applyTitleCardLogo(card,logo||"");
+  }catch{
+    applyTitleCardLogo(card,"");
+  }
+}
+
 function card(item){
-  const meta=[item.year,item.genre,item.rating?`★ ${item.rating}`:null].filter(Boolean).join(" · ");
+  const meta=[item.year,item.genre,item.rating?"★ "+item.rating:null].filter(Boolean).join(" · ");
   const poster=imageUrl(item,"poster");
-  const posterMarkup=poster?`<img class="title-card-poster" src="${escapeAttr(poster)}" alt="Affiche de ${escapeAttr(item.title)}" loading="lazy" decoding="async">`:"";
+  const posterMarkup=poster?"<img class=\"title-card-poster\" src=\""+escapeAttr(poster)+"\" alt=\"Affiche de "+escapeAttr(item.title)+"\" loading=\"lazy\" decoding=\"async\">":"";
   const listed=inList(item.title);
-  return `<article class="title-card" data-id="${escapeAttr(item.id)}">
-    <div class="title-card-media">${posterMarkup}</div>
-    <div class="title-card-shade"></div>
-    <div class="title-card-info">
-      <div class="title-card-type">${labelType(item.type)}</div>
-      <div class="title-card-title">${escapeHtml(item.title)}</div>
-      <div class="title-card-meta">${escapeHtml(meta)}</div>
-    </div>
-    <div class="title-card-actions" aria-label="Actions de ${escapeAttr(item.title)}">
-      <button class="title-card-play" type="button" data-play="${escapeAttr(item.id)}" aria-label="Lire ${escapeAttr(item.title)}">▶</button>
-      <button class="title-card-list" type="button" data-list-title="${escapeAttr(item.title)}" aria-label="${listed?"Retirer de":"Ajouter à"} ma liste">${listed?"✓":"＋"}</button>
-    </div>
-  </article>`;
+  const logoKey=titleLogoKey(item);
+  return "<article class=\"title-card\" data-id=\""+escapeAttr(item.id)+"\" data-logo-key=\""+escapeAttr(logoKey)+"\">"+
+    "<div class=\"title-card-media\">"+posterMarkup+"</div>"+
+    "<div class=\"title-card-shade\"></div>"+
+    "<div class=\"title-card-hover-logo\" aria-hidden=\"true\">"+
+      "<div class=\"title-card-hover-logo-content\">"+
+        "<img class=\"title-card-hover-logo-image\" alt=\"\" hidden>"+
+        "<span class=\"title-card-hover-logo-fallback\">"+escapeHtml(item.title)+"</span>"+
+      "</div>"+
+    "</div>"+
+    "<div class=\"title-card-info\">"+
+      "<div class=\"title-card-type\">"+labelType(item.type)+"</div>"+
+      "<div class=\"title-card-title\">"+escapeHtml(item.title)+"</div>"+
+      "<div class=\"title-card-meta\">"+escapeHtml(meta)+"</div>"+
+    "</div>"+
+    "<div class=\"title-card-actions\" aria-label=\"Actions de "+escapeAttr(item.title)+"\">"+
+      "<button class=\"title-card-play\" type=\"button\" data-play=\""+escapeAttr(item.id)+"\" aria-label=\"Lire "+escapeAttr(item.title)+"\">▶</button>"+
+      "<button class=\"title-card-list\" type=\"button\" data-list-title=\""+escapeAttr(item.title)+"\" aria-label=\""+(listed?"Retirer de":"Ajouter à")+" ma liste\">"+(listed?"✓":"＋")+"</button>"+
+    "</div>"+
+  "</article>";
 }
 function section(title,items,suffix="",filter="",layout="row"){
   if(!items.length)return"";
@@ -307,6 +392,15 @@ function bindCards(){
   const root=$("content");
   if(!root || root.dataset.cardsBound==="1") return;
   root.dataset.cardsBound="1";
+  root.addEventListener("pointerover",e=>{
+    const card=e.target.closest?.(".title-card");
+    if(!card || !root.contains(card) || card.contains(e.relatedTarget))return;
+    hydrateTitleCardLogo(card);
+  });
+  root.addEventListener("focusin",e=>{
+    const card=e.target.closest?.(".title-card");
+    if(card)hydrateTitleCardLogo(card);
+  });
   root.addEventListener("click",e=>{
     const rowLink=e.target.closest(".row-link");
     if(rowLink){
