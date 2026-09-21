@@ -296,7 +296,7 @@ function card(item){
   "</article>";
 }
 
-function section(title,items,suffix="",filter="",layout="row"){
+function section(title,items,suffix="",filter="",layout="row",infinite=true){
   if(!items.length)return"";
   const count=items.length;
   const visible=layout==="grid"?items:items.slice(0,24);
@@ -306,7 +306,7 @@ function section(title,items,suffix="",filter="",layout="row"){
     return `<section class="row row-grid-view"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div></div><div class="${listClass}">${visible.map(card).join("")}</div></section>`;
   }
 
-  return `<section class="row"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div><button class="row-link" data-row-filter="${filter}">${suffix||`${count} titre${count>1?"s":""}`} <span>→</span></button></div><div class="row-cards-shell"><div class="row-edge-fade row-edge-fade-left" aria-hidden="true"></div><button class="row-scroll-control row-scroll-left" type="button" data-row-scroll="-1" aria-label="Défiler ${escapeAttr(title)} vers la gauche">‹</button><div class="${listClass}">${visible.map(card).join("")}</div><div class="row-edge-fade row-edge-fade-right" aria-hidden="true"></div><button class="row-scroll-control row-scroll-right" type="button" data-row-scroll="1" aria-label="Défiler ${escapeAttr(title)} vers la droite">›</button></div></section>`;
+  return `<section class="row"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div><button class="row-link" data-row-filter="${filter}">${suffix||`${count} titre${count>1?"s":""}`} <span>→</span></button></div><div class="row-cards-shell"><div class="row-edge-fade row-edge-fade-left" aria-hidden="true"></div><button class="row-scroll-control row-scroll-left" type="button" data-row-scroll="-1" aria-label="Défiler ${escapeAttr(title)} vers la gauche">‹</button><div class="${listClass}" data-infinite="${infinite?"true":"false"}">${visible.map(card).join("")}</div><div class="row-edge-fade row-edge-fade-right" aria-hidden="true"></div><button class="row-scroll-control row-scroll-right" type="button" data-row-scroll="1" aria-label="Défiler ${escapeAttr(title)} vers la droite">›</button></div></section>`;
 }
 function getWatchState(){try{return JSON.parse(localStorage.getItem("nexora_watch")||"{}")}catch{return{}}}
 function saveWatchState(state){localStorage.setItem("nexora_watch",JSON.stringify(state))}
@@ -388,7 +388,7 @@ function renderCatalogView(tab="ranking",options={}){
   const resumeItems=catalogTabItems("resume");
   const labels={ranking:"Les plus regardés",popular:"Populaires",comedie:"Comédie",action:"Action",drame:"Drame",sf:"Science-fiction",aventure:"Aventure"};
   const label=labels[tab]||"Sélection";
-  const resumeSection=currentFilter!=="mylist"&&currentFilter!=="new"&&tab!=="popular"&&resumeItems.length?section("Reprendre la lecture",resumeItems,"",currentFilter,"row"):"";
+  const resumeSection=currentFilter!=="mylist"&&currentFilter!=="new"&&tab!=="popular"&&resumeItems.length?section("Reprendre la lecture",resumeItems,"",currentFilter,"row",false):"";
   const tabsSection=currentFilter!=="mylist"?`<div class="catalog-tabs-label">EXPLORER PAR CATÉGORIE</div>${catalogTabs(tab==="popular"?"ranking":tab)}`:"";
   const title=currentFilter==="mylist"?"Ma liste":label;
   $("content").innerHTML=`<div class="catalog-intro compact"><span class="intro-line"></span><div><span class="intro-kicker">${names[currentFilter]||"CATALOGUE"}</span><p>${currentFilter==="mylist"?"Retrouvez uniquement les titres que vous avez ajoutés à votre liste.":"Explorez votre catalogue NEXORA."}</p></div></div>${resumeSection}${tabsSection}${section(title,items,"",currentFilter,"grid")||`<div class="empty"><span>✦</span><h3>${currentFilter==="mylist"?"Votre liste est vide":"Aucun titre dans cette catégorie"}</h3><p>${currentFilter==="mylist"?"Ajoutez des films ou séries avec le bouton + Ma liste.":"Votre sélection apparaîtra ici au fil de vos lectures."}</p></div>`}`;
@@ -406,18 +406,17 @@ function syncRowScrollControls(list){
   const shell=list?.closest(".row-cards-shell");
   if(!shell)return;
   const carousel=list._nexoraCarousel;
-  if(!carousel){
-    const overflowing=list.scrollWidth-list.clientWidth>8;
-    shell.classList.toggle("has-left",false);
-    shell.classList.toggle("has-right",overflowing);
-    return;
-  }
-  const overflowing=carousel.overflowing;
-  const moved=Math.abs(list.scrollLeft-carousel.startScroll)>12;
-  shell.classList.toggle("has-left",overflowing&&moved);
+  const overflowing=carousel
+    ? carousel.overflowing
+    : list.scrollWidth-list.clientWidth>8;
+  const infinite=carousel?.infinite!==false;
+  const moved=carousel?.moved===true || Math.abs(list.scrollLeft)>12;
+  shell.classList.toggle("has-left",overflowing&&(infinite?moved:list.scrollLeft>12));
   shell.classList.toggle("has-right",overflowing);
-  carousel.leftButton?.toggleAttribute("disabled",!overflowing||!moved);
-  carousel.rightButton?.toggleAttribute("disabled",!overflowing);
+  const leftButton=carousel?.leftButton;
+  const rightButton=carousel?.rightButton;
+  leftButton?.toggleAttribute("disabled",!overflowing||(infinite?false:list.scrollLeft<=12));
+  rightButton?.toggleAttribute("disabled",!overflowing);
 }
 
 function bindRowScrollControls(root){
@@ -429,92 +428,98 @@ function bindRowScrollControls(root){
         const shell=list.closest(".row-cards-shell");
         const leftButton=shell?.querySelector(".row-scroll-left");
         const rightButton=shell?.querySelector(".row-scroll-right");
+        const infinite=list.dataset.infinite!=="false";
         const getUnit=()=>{
           const gap=parseFloat(getComputedStyle(list).gap||"0")||0;
-          const width=originals[0]?.getBoundingClientRect().width||0;
-          return Math.max(1,(width+gap)*originals.length);
+          const first=list.firstElementChild;
+          const width=first?.getBoundingClientRect().width||0;
+          return Math.max(1,width+gap);
         };
-        const cloneSet=side=>originals.map(card=>{
-          const clone=card.cloneNode(true);
-          clone.dataset.carouselClone="true";
-          clone.dataset.carouselCloneSide=side;
-          clone.setAttribute("aria-hidden","true");
-          return clone;
-        });
-
-        // Trois copies au total suffisent pour boucler sans multiplier le DOM.
-        list.prepend(...cloneSet("before"));
-        list.append(...cloneSet("after"));
 
         list._nexoraCarousel={
           getUnit,
           originalCount:originals.length,
-          startScroll:0,
-          lastScrollLeft:0,
-          overflowing:false,
           leftButton,
           rightButton,
+          infinite,
+          overflowing:false,
+          moved:false,
           scrollBy(direction){
-            const distance=Math.max(420,Math.round(list.clientWidth*.82));
-            list.scrollTo({
-              left:list.scrollLeft+Number(direction||1)*distance,
-              behavior:"smooth"
-            });
+            const dir=Number(direction||1);
+            const unit=getUnit();
+            const distance=Math.max(unit,Math.round(list.clientWidth*.82));
+            const max=list.scrollWidth-list.clientWidth;
+            if(!infinite){
+              const target=Math.max(0,Math.min(max,list.scrollLeft+dir*distance));
+              list.scrollTo({left:target,behavior:"smooth"});
+              return;
+            }
+            list.scrollBy({left:dir*distance,behavior:"smooth"});
           }
         };
 
-        requestAnimationFrame(()=>{
+        const normalizeInfiniteScroll=()=>{
+          const carousel=list._nexoraCarousel;
+          if(!carousel?.infinite)return;
+          const unit=carousel.getUnit();
+          if(unit<=1)return;
+
+          // Aucun clone : on recycle uniquement les cartes déjà présentes.
+          // Quand une carte sort complètement de la fenêtre, elle est déplacée
+          // à l'autre extrémité puis le scroll est compensé de la même largeur.
+          let guard=0;
+          while(list.scrollLeft>=unit-1 && guard<originals.length){
+            const first=list.firstElementChild;
+            if(!first)break;
+            list.appendChild(first);
+            list.scrollLeft-=unit;
+            carousel.moved=true;
+            guard++;
+          }
+
+          while(list.scrollLeft<0 && guard<originals.length*2){
+            const last=list.lastElementChild;
+            if(!last)break;
+            list.prepend(last);
+            list.scrollLeft+=unit;
+            carousel.moved=true;
+            guard++;
+          }
+        };
+
+        const updateOverflow=()=>{
           const carousel=list._nexoraCarousel;
           if(!carousel)return;
-          const unit=carousel.getUnit();
-          const start=unit;
-          carousel.startScroll=start;
-          carousel.lastScrollLeft=start;
           carousel.overflowing=list.scrollWidth-list.clientWidth>8;
-          list.scrollLeft=start;
           syncRowScrollControls(list);
-        });
-      }
+        };
 
-      let scrollFrame=0;
-      list.addEventListener("scroll",()=>{
-        if(scrollFrame)return;
-        scrollFrame=requestAnimationFrame(()=>{
-          scrollFrame=0;
-          const carousel=list._nexoraCarousel;
-          if(carousel){
-            const unit=carousel.getUnit();
-            if(unit>1){
-              const raw=list.scrollLeft;
-              if(raw<unit*.5){
-                list.scrollLeft=raw+unit;
-              }else if(raw>=unit*1.5){
-                list.scrollLeft=raw-unit;
-              }
-              carousel.lastScrollLeft=list.scrollLeft;
-            }
-          }
-          syncRowScrollControls(list);
-        });
-      },{passive:true});
+        list.addEventListener("scroll",()=>{
+          if(list._nexoraScrollFrame)return;
+          list._nexoraScrollFrame=requestAnimationFrame(()=>{
+            list._nexoraScrollFrame=0;
+            const carousel=list._nexoraCarousel;
+            if(carousel?.infinite)normalizeInfiniteScroll();
+            else if(carousel)carousel.moved=carousel.moved||list.scrollLeft>12;
+            syncRowScrollControls(list);
+          });
+        },{passive:true});
 
-      if(typeof ResizeObserver==="function"){
-        const observer=new ResizeObserver(()=>{
-          const carousel=list._nexoraCarousel;
-          if(carousel){
-            const unit=carousel.getUnit();
-            const nextStart=unit;
-            if(Math.abs(list.scrollLeft-carousel.startScroll)<12){
-              list.scrollLeft=nextStart;
+        if(typeof ResizeObserver==="function"){
+          const observer=new ResizeObserver(()=>{
+            const carousel=list._nexoraCarousel;
+            if(carousel){
+              updateOverflow();
             }
-            carousel.startScroll=nextStart;
-            carousel.overflowing=list.scrollWidth-list.clientWidth>8;
-            carousel.lastScrollLeft=list.scrollLeft;
-          }
+          });
+          observer.observe(list);
+          list._nexoraRowScrollObserver=observer;
+        }
+
+        requestAnimationFrame(()=>{
+          updateOverflow();
           syncRowScrollControls(list);
         });
-        observer.observe(list);
-        list._nexoraRowScrollObserver=observer;
       }
     }
     syncRowScrollControls(list);
