@@ -220,6 +220,12 @@ async function loadTitleLogo(item){
       try{
         const data=await fetchNexoraDetails({action:"content",type,tmdb_id:id});
         const logo=pickTitleLogo(data?.details||{});
+        if(logo){
+          const image=new Image();
+          image.decoding="async";
+          image.src=logo;
+          try{await image.decode();}catch{}
+        }
         titleLogoCache.set(key,logo);
         return logo;
       }catch(error){
@@ -233,7 +239,6 @@ async function loadTitleLogo(item){
   }
   try{return await titleLogoRequests.get(key);}catch{return "";}
 }
-
 
 function applyTitleCardLogo(card,logoUrl,loading=false){
   if(!card)return;
@@ -276,7 +281,6 @@ function card(item){
   const typeLabel=labelType(item.type);
   const genreLabel=primaryGenre(item);
   const hoverMeta=[item.year,genreLabel,item.rating?"★ "+item.rating:null].filter(Boolean).join(" · ");
-  const meta=[item.year,genreLabel,item.rating?"★ "+item.rating:null].filter(Boolean).join(" · ");
   const poster=imageUrl(item,"poster");
   const posterMarkup=poster?"<img class=\"title-card-poster\" src=\""+escapeAttr(poster)+"\" alt=\"Affiche de "+escapeAttr(item.title)+"\" loading=\"lazy\" decoding=\"async\">":"";
   const listed=inList(item.title);
@@ -292,16 +296,13 @@ function card(item){
         "<div class=\"title-card-hover-meta\">"+escapeHtml(hoverMeta)+"</div>"+
       "</div>"+
     "</div>"+
-    "<div class=\"title-card-info\">"+
-      "<div class=\"title-card-title\">"+escapeHtml(item.title)+"</div>"+
-      "<div class=\"title-card-meta\">"+escapeHtml(meta)+"</div>"+
-    "</div>"+
     "<div class=\"title-card-actions\" aria-label=\"Actions de "+escapeAttr(item.title)+"\">"+
       "<button class=\"title-card-play\" type=\"button\" data-play=\""+escapeAttr(item.id)+"\" aria-label=\"Lire "+escapeAttr(item.title)+"\">▶</button>"+
       "<button class=\"title-card-list\" type=\"button\" data-list-title=\""+escapeAttr(item.title)+"\" aria-label=\""+(listed?"Retirer de":"Ajouter à")+" ma liste\">"+(listed?"✓":"＋")+"</button>"+
     "</div>"+
   "</article>";
 }
+
 function section(title,items,suffix="",filter="",layout="row"){
   if(!items.length)return"";
   const count=items.length;
@@ -405,47 +406,56 @@ function resolveContentId(raw){
 }
 function bindCards(){
   const root=$("content");
-  if(!root || root.dataset.cardsBound==="1") return;
-  root.dataset.cardsBound="1";
-  root.addEventListener("pointerover",e=>{
-    const card=e.target.closest?.(".title-card");
-    if(!card || !root.contains(card) || card.contains(e.relatedTarget))return;
-    hydrateTitleCardLogo(card);
-  });
-  root.addEventListener("focusin",e=>{
-    const card=e.target.closest?.(".title-card");
-    if(card)hydrateTitleCardLogo(card);
-  });
-  root.addEventListener("click",e=>{
-    const rowLink=e.target.closest(".row-link");
-    if(rowLink){
-      e.preventDefault();
-      const filter=rowLink.dataset.rowFilter;
-      if(["film","serie","anime","new","mylist"].includes(filter)){
-        navigateToFilter(filter);
-      } else if(/^popular-(film|serie|anime)$/.test(filter)){
-        currentFilter=filter.replace("popular-","");
-        syncNexoraUrl(routeForFilter(currentFilter),false);
-        setActiveNav(currentFilter);
-        renderCatalogView("popular",{hideHero:true});
-        window.scrollTo({top:document.querySelector("main").offsetTop-65,behavior:"smooth"});
-      } else if(filter==="trend"){
-        currentFilter="all"; syncNexoraUrl("/",false); renderCatalogView("ranking",{hideHero:true});
-        setActiveNav("all");
-        window.scrollTo({top:document.querySelector("main").offsetTop-65,behavior:"smooth"});
+  if(!root)return;
+  if(root.dataset.cardsBound!=="1"){
+    root.dataset.cardsBound="1";
+    root.addEventListener("pointerover",e=>{
+      const card=e.target.closest?.(".title-card");
+      if(!card || !root.contains(card) || card.contains(e.relatedTarget))return;
+      hydrateTitleCardLogo(card);
+    });
+    root.addEventListener("focusin",e=>{
+      const card=e.target.closest?.(".title-card");
+      if(card)hydrateTitleCardLogo(card);
+    });
+    root.addEventListener("click",e=>{
+      const rowLink=e.target.closest(".row-link");
+      if(rowLink){
+        e.preventDefault();
+        const filter=rowLink.dataset.rowFilter;
+        if(["film","serie","anime","new","mylist"].includes(filter)){
+          navigateToFilter(filter);
+        } else if(/^popular-(film|serie|anime)$/.test(filter)){
+          currentFilter=filter.replace("popular-","");
+          syncNexoraUrl(routeForFilter(currentFilter),false);
+          setActiveNav(currentFilter);
+          renderCatalogView("popular",{hideHero:true});
+          window.scrollTo({top:document.querySelector("main").offsetTop-65,behavior:"smooth"});
+        } else if(filter==="trend"){
+          currentFilter="all"; syncNexoraUrl("/",false); renderCatalogView("ranking",{hideHero:true});
+          setActiveNav("all");
+          window.scrollTo({top:document.querySelector("main").offsetTop-65,behavior:"smooth"});
+        }
+        return;
       }
-      return;
+      const play=e.target.closest("[data-play]");
+      if(play){e.preventDefault();e.stopPropagation();const id=resolveContentId(play.dataset.play);if(id!==null)openPlayer(id);return;}
+      const list=e.target.closest("[data-list-title]");
+      if(list){e.preventDefault();e.stopPropagation();toggleList(list.dataset.listTitle);return;}
+      const info=e.target.closest("[data-info]");
+      if(info){e.preventDefault();e.stopPropagation();const id=resolveContentId(info.dataset.info);if(id!==null)openDetail(id);return;}
+      const card=e.target.closest(".title-card");
+      if(card){const id=resolveContentId(card.dataset.id);if(id!==null)openDetail(id);}
+    });
+  }
+  const cards=[...root.querySelectorAll(".title-card")];
+  void (async()=>{
+    for(let i=0;i<cards.length;i+=8){
+      await Promise.all(cards.slice(i,i+8).map(card=>hydrateTitleCardLogo(card)));
     }
-    const play=e.target.closest("[data-play]");
-    if(play){e.preventDefault();e.stopPropagation();const id=resolveContentId(play.dataset.play);if(id!==null)openPlayer(id);return;}
-    const list=e.target.closest("[data-list-title]");
-    if(list){e.preventDefault();e.stopPropagation();toggleList(list.dataset.listTitle);return;}
-    const info=e.target.closest("[data-info]");
-    if(info){e.preventDefault();e.stopPropagation();const id=resolveContentId(info.dataset.info);if(id!==null)openDetail(id);return;}
-    const card=e.target.closest(".title-card");
-    if(card){const id=resolveContentId(card.dataset.id);if(id!==null)openDetail(id);}
-  });
+  })();
 }
+
 function render(){
   activeView="home";
   const isMyList=currentFilter==="mylist";
@@ -527,12 +537,11 @@ async function startHeroCarousel(pool){
   heroItems=(pool||[]).filter(Boolean).slice(0,8);
   if(!heroItems.length)return;
   heroIndex=0;
-  await loadTitleLogo(heroItems[0]);
+  await Promise.all(heroItems.map(loadTitleLogo));
   if(run!==heroLoadRun)return;
   setHero(heroItems[0]);
   renderHeroDots();
   restartHeroTimer();
-  Promise.all(heroItems.slice(1).map(loadTitleLogo)).catch(()=>{});
 }
 
 function setHero(item){
