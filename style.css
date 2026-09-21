@@ -854,17 +854,19 @@ body.player-open{overflow:hidden}
   display:grid;
   place-items:center;
   border:1px solid rgba(255,255,255,.12);
-  border-radius:50%;
-  background:rgba(18,20,27,.72);
+  border-radius:10px;
+  background:rgba(18,20,27,.58);
   color:#fff;
-  font-size:28px;
-  font-weight:300;
+  font-size:25px;
+  font-weight:350;
   line-height:1;
   cursor:pointer;
   opacity:0;
   visibility:hidden;
   pointer-events:none;
   transform:translateY(-50%);
+  backdrop-filter:blur(2px) saturate(105%);
+  -webkit-backdrop-filter:blur(2px) saturate(105%);
   transition:opacity .18s ease,visibility .18s ease,background .18s ease,transform .18s ease;
 }
 .row-scroll-left{left:16px}
@@ -875,7 +877,9 @@ body.player-open{overflow:hidden}
   visibility:visible;
   pointer-events:auto;
 }
-.row-scroll-control:disabled{
+.row-scroll-control:disabled,
+.row:hover .row-scroll-control:disabled,
+.row:focus-within .row-scroll-control:disabled{
   opacity:0!important;
   visibility:hidden!important;
   pointer-events:none!important;
