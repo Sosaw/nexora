@@ -553,14 +553,24 @@ function renderHeroDots(){
 
 function heroItemKey(item){
   if(!item)return "";
-  if(item.id!==undefined&&item.id!==null)return String(item.id);
   const type=normalizeContentType(item);
   const tmdbId=Number(item.tmdb_id);
-  return Number.isFinite(tmdbId)&&tmdbId>0 ? `${type}:${tmdbId}` : String(item.title||"");
+  if(Number.isFinite(tmdbId)&&tmdbId>0)return `${type}:${tmdbId}`;
+  if(item.id!==undefined&&item.id!==null)return `id:${String(item.id)}`;
+  return `title:${String(item.title||"").trim().toLowerCase()}`;
+}
+function uniqueHeroItems(pool){
+  const seen=new Set();
+  return (pool||[]).filter(Boolean).filter(item=>{
+    const key=heroItemKey(item);
+    if(!key||seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function updateHeroCarousel(pool){
-  const nextItems=(pool||[]).filter(Boolean).slice(0,8);
+  const nextItems=uniqueHeroItems(pool).slice(0,8);
   if(!nextItems.length){
     stopHeroCarousel();
     return;
@@ -645,6 +655,11 @@ function goToHero(nextIndex,{direction=null,animate=true}={}){
     restartHeroTimer();
     return;
   }
+  const targetItem=heroItems[normalized];
+  if(!targetItem||heroItemKey(targetItem)===heroItemKey(heroItems[current])){
+    restartHeroTimer();
+    return;
+  }
   heroIndex=normalized;
   const dir=direction===null ? (normalized>current || (current===heroItems.length-1&&normalized===0) ? 1 : -1) : direction;
   if(animate)animateHeroTransition(heroItems[heroIndex],dir);
@@ -667,7 +682,7 @@ let heroLoadRun=0;
 async function startHeroCarousel(pool){
   stopHeroCarousel();
   const run=++heroLoadRun;
-  heroItems=(pool||[]).filter(Boolean).slice(0,8);
+  heroItems=uniqueHeroItems(pool).slice(0,8);
   if(!heroItems.length)return;
   heroIndex=0;
 
