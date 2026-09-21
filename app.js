@@ -1510,7 +1510,7 @@ async function loadContents(){
     if(allContents.length>contents.length){
       contents=allContents.map(normalizeContent).filter(isAllowedContent);
 
-      if(!requestedDetail || activeView!=="detail") render({preserveHero:true});
+      if(!requestedDetail || activeView!=="detail") render();
 
       if ($("status")) {
         $("status").innerHTML=`<span class="status-dot"></span> Catalogue disponible · ${contents.length} contenu(s)`;
