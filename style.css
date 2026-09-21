@@ -833,3 +833,89 @@ body.player-open{overflow:hidden}
   height:34px;
   flex:none;
 }
+/* NEXORA — carrousel circulaire final */
+.row-cards-shell{position:relative;isolation:isolate;overflow:visible}
+.row-cards-shell .row-scroll-list{
+  position:relative;
+  overflow-x:auto;
+  overflow-y:visible;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  scroll-behavior:smooth;
+  overscroll-behavior-x:contain;
+  mask-image:none;
+  -webkit-mask-image:none;
+}
+.row-cards-shell .row-scroll-list::-webkit-scrollbar{display:none}
+.row-edge-fade{
+  position:absolute;
+  top:0;
+  bottom:14px;
+  width:112px;
+  z-index:8;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .22s ease;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.row-edge-fade-left{
+  left:0;
+  background:linear-gradient(90deg,rgba(7,8,11,.96) 0%,rgba(7,8,11,.62) 38%,rgba(7,8,11,.12) 76%,transparent 100%);
+}
+.row-edge-fade-right{
+  right:0;
+  background:linear-gradient(270deg,rgba(7,8,11,.97) 0%,rgba(7,8,11,.64) 38%,rgba(7,8,11,.12) 76%,transparent 100%);
+}
+.row:hover .row-edge-fade,
+.row:focus-within .row-edge-fade{opacity:1}
+.row-scroll-control{
+  position:absolute;
+  top:50%;
+  z-index:10;
+  width:46px;
+  height:46px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:12px;
+  background:rgba(18,20,27,.62);
+  color:#fff;
+  font-size:27px;
+  font-weight:350;
+  line-height:1;
+  cursor:pointer;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transform:translateY(-50%);
+  backdrop-filter:blur(16px) saturate(120%);
+  -webkit-backdrop-filter:blur(16px) saturate(120%);
+  box-shadow:0 10px 30px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:opacity .2s ease,visibility .2s ease,background .2s ease,transform .2s ease;
+}
+.row-scroll-left{left:18px}
+.row-scroll-right{right:18px}
+.row:hover .row-scroll-control,
+.row:focus-within .row-scroll-control{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
+.row-scroll-control:disabled{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+.row-scroll-control:hover{
+  background:rgba(30,33,42,.8);
+  transform:translateY(-50%) scale(1.04);
+}
+.row-scroll-control:active{transform:translateY(-50%) scale(.98)}
+@media(max-width:760px){
+  .row-edge-fade{width:72px}
+  .row-scroll-control{width:40px;height:40px;border-radius:11px;font-size:23px}
+  .row-scroll-left{left:8px}
+  .row-scroll-right{right:8px}
+}
