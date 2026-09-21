@@ -559,22 +559,26 @@ function stopHeroCarousel(){
 function renderHeroDots(){
   const dots=$("heroDots");
   if(!dots)return;
-  if(!heroItems.length)return;
+  if(!heroItems.length){
+    dots.innerHTML="";
+    return;
+  }
 
-  const now=performance.now();
-  const remaining=heroTimerDeadline>0 ? Math.max(0,heroTimerDeadline-now) : 0;
-  const progress=heroTimerDeadline>0 ? Math.min(1,Math.max(0,1-(remaining/5000))) : 0;
-  const duration=heroTimerDeadline>0 ? Math.round(remaining) : 0;
+  const remaining=heroTimerDeadline>0 ? Math.max(0,heroTimerDeadline-performance.now()) : 5000;
+  const elapsed=Math.min(5000,Math.max(0,5000-remaining));
+  const delay=-Math.round(elapsed);
 
   dots.innerHTML=heroItems.slice(0,8).map((item,index)=>{
     const active=index===heroIndex;
-    const style="--hero-progress:"+(active?progress:0)+";--hero-progress-duration:"+(active?duration:0)+"ms";
-    return "<button type=\"button\" class=\"hero-dot "+(active?"active":"")+"\" data-hero-index=\""+index+"\" aria-label=\"Afficher "+escapeAttr(item.title)+"\" style=\""+style+"\"></button>";
+    const style=active ? ' style="--hero-progress-delay:'+delay+'ms"' : "";
+    return '<button type="button" class="hero-dot '+(active?"active":"")+'" data-hero-index="'+index+'" aria-label="Afficher '+escapeAttr(item.title)+'"'+style+'></button>';
   }).join("");
 
-  dots.querySelectorAll("[data-hero-index]").forEach(dot=>dot.addEventListener("click",()=>{
-    goToHero(Number(dot.dataset.heroIndex));
-  }));
+  dots.querySelectorAll("[data-hero-index]").forEach(dot=>{
+    dot.addEventListener("click",()=>{
+      goToHero(Number(dot.dataset.heroIndex));
+    });
+  });
 }
 
 function heroItemKey(item){
@@ -599,21 +603,48 @@ function heroSequence(items){
 }
 
 function updateHeroCarousel(pool,scope=currentFilter){
-  const nextItems=uniqueHeroItems(pool).slice(0,8);
+  const incoming=uniqueHeroItems(pool).slice(0,8);
+  if(!incoming.length){
+    stopHeroCarousel();
+    return;
+  }
+
+  if(!heroItems.length||heroScope!==scope){
+    startHeroCarousel(incoming,scope);
+    return;
+  }
+
+  const currentKey=heroItemKey(activeHeroItem);
+  const incomingByKey=new Map(incoming.map(item=>[heroItemKey(item),item]));
+  const merged=[];
+  const seen=new Set();
+
+  // Keep the current carousel order stable across the second catalog load.
+  // New titles are appended instead of being allowed to replace slide 1.
+  for(const previous of heroItems){
+    const key=heroItemKey(previous);
+    const replacement=incomingByKey.get(key);
+    if(replacement&&!seen.has(key)){
+      merged.push(replacement);
+      seen.add(key);
+    }
+  }
+  for(const item of incoming){
+    const key=heroItemKey(item);
+    if(!seen.has(key)){
+      merged.push(item);
+      seen.add(key);
+    }
+    if(merged.length>=8)break;
+  }
+
+  const nextItems=merged.slice(0,8);
   if(!nextItems.length){
     stopHeroCarousel();
     return;
   }
 
-  const sameScope=heroScope===scope;
-  if(!heroItems.length||!sameScope){
-    startHeroCarousel(nextItems,scope);
-    return;
-  }
-
-  const currentKey=heroItemKey(activeHeroItem);
   const nextIndex=nextItems.findIndex(item=>heroItemKey(item)===currentKey);
-
   if(nextIndex<0){
     if(heroTransitionBusy){
       heroPendingItems=nextItems;
@@ -628,13 +659,17 @@ function updateHeroCarousel(pool,scope=currentFilter){
     return;
   }
 
-  const sameSequence=heroSequence(heroItems)===heroSequence(nextItems);
+  const oldSequence=heroSequence(heroItems);
+  const newSequence=heroSequence(nextItems);
+
   heroItems=nextItems;
+  heroScope=scope;
   heroIndex=nextIndex;
   activeHeroItem=nextItems[nextIndex];
 
-  if(!sameSequence)renderHeroDots();
+  if(oldSequence!==newSequence)renderHeroDots();
 
+  // A catalog refresh must never restart the current 5-second deadline.
   if(!heroTimer&&!heroTransitionBusy){
     scheduleHeroTimer(5000);
     renderHeroDots();
@@ -679,11 +714,14 @@ function animateHeroTransition(item,direction=1){
   setHero(item);
 
   let timerId=null;
+  let transitionEndHandler=null;
   let cleaned=false;
+
   const cleanup=()=>{
     if(cleaned)return;
     cleaned=true;
     if(timerId)clearTimeout(timerId);
+    if(transitionEndHandler)stage.removeEventListener("transitionend",transitionEndHandler);
     oldStage.remove();
     stage.classList.remove("hero-slide-prep","hero-slide-in");
     stage.style.transition="";
@@ -715,14 +753,19 @@ function animateHeroTransition(item,direction=1){
       }
     }
   };
+
   heroTransitionCleanup=cleanup;
+  transitionEndHandler=event=>{
+    if(event.target===stage&&event.propertyName==="transform")cleanup();
+  };
+  stage.addEventListener("transitionend",transitionEndHandler);
 
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
       if(heroTransitionCleanup!==cleanup||transitionToken!==heroTransitionToken)return;
       oldStage.classList.add("is-sliding");
       stage.classList.add("hero-slide-in");
-      timerId=window.setTimeout(cleanup,620);
+      timerId=window.setTimeout(cleanup,820);
     });
   });
 }
