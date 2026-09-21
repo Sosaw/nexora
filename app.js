@@ -308,8 +308,20 @@ function section(title,items,suffix="",filter="",layout="row"){
 
   return `<section class="row"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div><button class="row-link" data-row-filter="${filter}">${suffix||`${count} titre${count>1?"s":""}`} <span>→</span></button></div><div class="row-cards-shell"><div class="row-edge-fade row-edge-fade-left" aria-hidden="true"></div><button class="row-scroll-control row-scroll-left" type="button" data-row-scroll="-1" aria-label="Défiler ${escapeAttr(title)} vers la gauche">‹</button><div class="${listClass}">${visible.map(card).join("")}</div><div class="row-edge-fade row-edge-fade-right" aria-hidden="true"></div><button class="row-scroll-control row-scroll-right" type="button" data-row-scroll="1" aria-label="Défiler ${escapeAttr(title)} vers la droite">›</button></div></section>`;
 }
-function getWatchState(){try{return JSON.parse(localStorage.getItem("nexora_watch")||"{}")}catch{return{}}}
-function saveWatchState(state){localStorage.setItem("nexora_watch",JSON.stringify(state))}
+let watchStateCache=null;
+function getWatchState(){
+  if(watchStateCache)return watchStateCache;
+  try{
+    watchStateCache=JSON.parse(localStorage.getItem("nexora_watch")||"{}");
+  }catch{
+    watchStateCache={};
+  }
+  return watchStateCache;
+}
+function saveWatchState(state){
+  watchStateCache=state||{};
+  localStorage.setItem("nexora_watch",JSON.stringify(watchStateCache));
+}
 function markWatched(item){const state=getWatchState();const entry=state[item.id]||{views:0,progress:0};entry.views=(entry.views||0)+1;entry.lastWatched=Date.now();entry.progress=Math.max(entry.progress||0,8);state[item.id]=entry;saveWatchState(state)}
 function catalogTabs(active="ranking"){const tabs=[
   ["ranking","Classement"],["comedie","Comédie"],["action","Action"],["drame","Drame"],["sf","Science-fiction"],["aventure","Aventure"]
@@ -406,10 +418,12 @@ function syncRowScrollControls(list){
   const shell=list?.closest(".row-cards-shell");
   if(!shell)return;
   const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
-  const overflowing=maxScroll>8;
-  shell.classList.toggle("has-left",overflowing);
+  const overflowing=maxScroll>10;
+  const carousel=list._nexoraCarousel;
+  const hasMovedRight=carousel ? carousel.virtualPosition>12 : list.scrollLeft>12;
+  shell.classList.toggle("has-left",overflowing&&hasMovedRight);
   shell.classList.toggle("has-right",overflowing);
-  shell.querySelector(".row-scroll-left")?.toggleAttribute("disabled",!overflowing);
+  shell.querySelector(".row-scroll-left")?.toggleAttribute("disabled",!overflowing||!hasMovedRight);
   shell.querySelector(".row-scroll-right")?.toggleAttribute("disabled",!overflowing);
 }
 
@@ -429,13 +443,28 @@ function bindRowScrollControls(root){
           clone.dataset.carouselClone="true";
           clone.dataset.carouselCloneSide=side;
           clone.setAttribute("aria-hidden","true");
+          clone.inert=true;
           return clone;
         });
         list.prepend(...cloneSet("before"));
         list.append(...cloneSet("after"));
-        list._nexoraCarousel={getUnit,originalCount:originals.length};
+        list._nexoraCarousel={
+          getUnit,
+          originalCount:originals.length,
+          virtualPosition:0,
+          lastScrollLeft:0,
+          normalizing:false,
+          scrollBy(direction){
+            const distance=Math.max(360,Math.round(list.clientWidth*.82));
+            const target=list.scrollLeft+Number(direction||1)*distance;
+            list.scrollTo({left:target,behavior:"smooth"});
+          }
+        };
         requestAnimationFrame(()=>{
-          list.scrollLeft=getUnit();
+          const unit=getUnit();
+          list.scrollLeft=unit;
+          list._nexoraCarousel.lastScrollLeft=unit;
+          list._nexoraCarousel.virtualPosition=0;
           syncRowScrollControls(list);
         });
       }
@@ -443,9 +472,27 @@ function bindRowScrollControls(root){
         const carousel=list._nexoraCarousel;
         if(carousel){
           const unit=carousel.getUnit();
+          const raw=list.scrollLeft;
+          const delta=raw-carousel.lastScrollLeft;
+          if(Math.abs(delta)>0.01)carousel.virtualPosition+=delta;
+
           if(unit>1){
-            if(list.scrollLeft<unit*.5)list.scrollLeft+=unit;
-            else if(list.scrollLeft>=unit*1.5)list.scrollLeft-=unit;
+            let normalized=raw;
+            if(raw<unit*.5){
+              normalized=raw+unit;
+            }else if(raw>=unit*1.5){
+              normalized=raw-unit;
+            }
+            if(normalized!==raw){
+              carousel.normalizing=true;
+              list.scrollLeft=normalized;
+              carousel.lastScrollLeft=normalized;
+              carousel.normalizing=false;
+            }else{
+              carousel.lastScrollLeft=raw;
+            }
+          }else{
+            carousel.lastScrollLeft=raw;
           }
         }
         syncRowScrollControls(list);
@@ -483,8 +530,12 @@ function bindCards(){
         const list=shell?.querySelector(".row-scroll-list");
         if(!list)return;
         const direction=Number(scrollControl.dataset.rowScroll)||1;
-        const distance=Math.max(420,Math.round(list.clientWidth*.82));
-        list.scrollBy({left:direction*distance,behavior:"smooth"});
+        if(list._nexoraCarousel?.scrollBy){
+          list._nexoraCarousel.scrollBy(direction);
+        }else{
+          const distance=Math.max(360,Math.round(list.clientWidth*.82));
+          list.scrollBy({left:direction*distance,behavior:"smooth"});
+        }
         return;
       }
 
@@ -517,12 +568,8 @@ function bindCards(){
       if(card){const id=resolveContentId(card.dataset.id);if(id!==null)openDetail(id);}
     });
   }
-  const cards=[...root.querySelectorAll(".title-card")];
-  void (async()=>{
-    for(let i=0;i<cards.length;i+=24){
-      await Promise.all(cards.slice(i,i+24).map(card=>hydrateTitleCardLogo(card)));
-    }
-  })();
+  // Les logos secondaires sont chargés uniquement à l'interaction (survol/focus).
+  // Ne pas lancer une rafale de requêtes pour toutes les cartes au démarrage.
   bindRowScrollControls(root);
 }
 
@@ -594,23 +641,12 @@ function preloadVisualImage(url){
 }
 
 async function waitForInitialVisuals(){
-  const work=(async()=>{
-    for(let attempt=0;attempt<3;attempt++){
-      const pending=heroReadyPromise;
-      await pending;
-      if(pending===heroReadyPromise)break;
-    }
-    const tasks=[];
-    if(activeHeroItem)tasks.push(preloadVisualImage(imageUrl(activeHeroItem,"backdrop")));
-    document.querySelectorAll(".title-card-poster").forEach(image=>{
-      const rect=image.getBoundingClientRect();
-      if(rect.bottom>=0&&rect.top<=window.innerHeight+120){
-        tasks.push(preloadVisualImage(image.currentSrc||image.src));
-      }
-    });
-    await Promise.all(tasks);
-  })();
-  await Promise.race([work,new Promise(resolve=>setTimeout(resolve,3500))]);
+  const heroUrl=activeHeroItem?imageUrl(activeHeroItem,"backdrop"):"";
+  if(!heroUrl)return;
+  await Promise.race([
+    preloadVisualImage(heroUrl),
+    new Promise(resolve=>setTimeout(resolve,900))
+  ]);
 }
 
 function stopHeroCarousel(){
@@ -943,18 +979,17 @@ async function startHeroCarousel(pool,scope=currentFilter){
   if(!heroItems.length)return;
   heroIndex=0;
 
-  heroReadyPromise=(async()=>{
-    await loadTitleLogo(heroItems[0]);
-    if(run!==heroLoadRun)return;
+  // Afficher immédiatement le premier hero : le logo est secondaire et ne doit pas bloquer l'ouverture.
+  setHero(heroItems[0]);
+  scheduleHeroTimer(5000);
+  renderHeroDots({restartProgress:true});
+  heroReadyPromise=Promise.resolve();
 
+  void loadTitleLogo(heroItems[0]).then(()=>{
+    if(run!==heroLoadRun||heroItemKey(activeHeroItem)!==heroItemKey(heroItems[0]))return;
     setHero(heroItems[0]);
-    scheduleHeroTimer(5000);
-    renderHeroDots({restartProgress:true});
-
-    void Promise.all(heroItems.slice(1).map(loadTitleLogo)).catch(()=>{});
-  })();
-
-  await heroReadyPromise;
+  }).catch(()=>{});
+  void Promise.all(heroItems.slice(1).map(loadTitleLogo)).catch(()=>{});
 }
 
 function stripCloneIds(root){
@@ -1655,17 +1690,16 @@ async function fetchContentsPage(from=0,to=999){
   return data||[];
 }
 
-async function fetchAllContents(){
+async function fetchAllContents(initialContents=[]){
   const pageSize=1000;
-  const firstPage=await fetchContentsPage(0,pageSize-1);
-  const all=[...firstPage];
+  const all=[...initialContents];
 
-  if(firstPage.length<pageSize) return all;
+  if(all.length<pageSize)return all;
 
   for(let from=pageSize;;from+=pageSize){
     const batch=await fetchContentsPage(from,from+pageSize-1);
     all.push(...batch);
-    if(batch.length<pageSize) break;
+    if(batch.length<pageSize)break;
   }
 
   return all;
@@ -1712,7 +1746,7 @@ async function loadContents(){
   hidePageLoader();
 
   // Charger le reste du catalogue en arrière-plan
-  fetchAllContents().then(allContents=>{
+  fetchAllContents(dbContents).then(allContents=>{
     if(allContents.length>contents.length){
       contents=allContents.map(normalizeContent).filter(isAllowedContent);
 
