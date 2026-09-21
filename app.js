@@ -454,8 +454,23 @@ function bindRowScrollControls(root){
               list.scrollTo({left:target,behavior:"smooth"});
               return;
             }
+            if(dir<0&&list.scrollLeft<=1){
+              prependLastCard();
+            }
             list.scrollBy({left:dir*distance,behavior:"smooth"});
           }
+        };
+
+        const prependLastCard=()=>{
+          const carousel=list._nexoraCarousel;
+          if(!carousel?.infinite)return false;
+          const unit=carousel.getUnit();
+          const last=list.lastElementChild;
+          if(!last||unit<=1)return false;
+          list.prepend(last);
+          list.scrollLeft+=unit;
+          carousel.moved=true;
+          return true;
         };
 
         const normalizeInfiniteScroll=()=>{
@@ -465,23 +480,14 @@ function bindRowScrollControls(root){
           if(unit<=1)return;
 
           // Aucun clone : on recycle uniquement les cartes déjà présentes.
-          // Quand une carte sort complètement de la fenêtre, elle est déplacée
-          // à l'autre extrémité puis le scroll est compensé de la même largeur.
+          // Une carte sortie par la droite passe à gauche et le scroll est
+          // compensé de sa propre largeur pour garder la continuité visuelle.
           let guard=0;
           while(list.scrollLeft>=unit-1 && guard<originals.length){
             const first=list.firstElementChild;
             if(!first)break;
             list.appendChild(first);
             list.scrollLeft-=unit;
-            carousel.moved=true;
-            guard++;
-          }
-
-          while(list.scrollLeft<0 && guard<originals.length*2){
-            const last=list.lastElementChild;
-            if(!last)break;
-            list.prepend(last);
-            list.scrollLeft+=unit;
             carousel.moved=true;
             guard++;
           }
@@ -493,6 +499,12 @@ function bindRowScrollControls(root){
           carousel.overflowing=list.scrollWidth-list.clientWidth>8;
           syncRowScrollControls(list);
         };
+
+        list.addEventListener("wheel",event=>{
+          const carousel=list._nexoraCarousel;
+          if(!carousel?.infinite||event.deltaX>=0||list.scrollLeft>1)return;
+          prependLastCard();
+        },{passive:true});
 
         list.addEventListener("scroll",()=>{
           if(list._nexoraScrollFrame)return;
