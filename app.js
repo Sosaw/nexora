@@ -556,28 +556,62 @@ function stopHeroCarousel(){
   heroReadyPromise=Promise.resolve();
 }
 
-function renderHeroDots(){
+function renderHeroDots({restartProgress=false}={}){
   const dots=$("heroDots");
   if(!dots)return;
+
   if(!heroItems.length){
-    dots.innerHTML="";
+    dots.replaceChildren();
     return;
   }
 
-  const remaining=heroTimerDeadline>0 ? Math.max(0,heroTimerDeadline-performance.now()) : 5000;
-  const elapsed=Math.min(5000,Math.max(0,5000-remaining));
-  const delay=-Math.round(elapsed);
+  const wantedKeys=heroItems.slice(0,8).map(heroItemKey);
+  const existing=new Map([...dots.querySelectorAll("[data-hero-key]")].map(button=>[button.dataset.heroKey,button]));
+  const fragment=document.createDocumentFragment();
 
-  dots.innerHTML=heroItems.slice(0,8).map((item,index)=>{
-    const active=index===heroIndex;
-    const style=active ? ' style="--hero-progress-delay:'+delay+'ms"' : "";
-    return '<button type="button" class="hero-dot '+(active?"active":"")+'" data-hero-index="'+index+'" aria-label="Afficher '+escapeAttr(item.title)+'"'+style+'></button>';
-  }).join("");
+  wantedKeys.forEach((key,index)=>{
+    const item=heroItems[index];
+    let button=existing.get(key);
 
-  dots.querySelectorAll("[data-hero-index]").forEach(dot=>{
-    dot.addEventListener("click",()=>{
-      goToHero(Number(dot.dataset.heroIndex));
-    });
+    if(!button){
+      button=document.createElement("button");
+      button.type="button";
+      button.className="hero-dot";
+      button.dataset.heroKey=key;
+
+      const fill=document.createElement("span");
+      fill.className="hero-dot-fill";
+      fill.setAttribute("aria-hidden","true");
+      button.appendChild(fill);
+
+      button.addEventListener("click",()=>{
+        const targetIndex=heroItems.findIndex(candidate=>heroItemKey(candidate)===button.dataset.heroKey);
+        if(targetIndex>=0)goToHero(targetIndex);
+      });
+    }
+
+    button.dataset.heroIndex=String(index);
+    button.setAttribute("aria-label","Afficher "+String(item.title||""));
+    button.classList.toggle("active",index===heroIndex);
+    button.classList.remove("progressing");
+    fragment.appendChild(button);
+  });
+
+  dots.replaceChildren(fragment);
+  syncHeroDotProgress({restart:restartProgress});
+}
+
+function syncHeroDotProgress({restart=false}={}){
+  const dots=$("heroDots");
+  if(!dots||!heroItems.length)return;
+
+  const activeKey=heroItemKey(heroItems[heroIndex]);
+  const activeButton=[...dots.querySelectorAll("[data-hero-key]")].find(button=>button.dataset.heroKey===activeKey);
+
+  dots.querySelectorAll("[data-hero-key]").forEach(button=>{
+    const active=button===activeButton;
+    button.classList.toggle("active",active);
+    button.classList.toggle("progressing",restart&&active);
   });
 }
 
@@ -749,7 +783,7 @@ function animateHeroTransition(item,direction=1){
 
       if(!heroTransitionBusy){
         scheduleHeroTimer(5000);
-        renderHeroDots();
+        renderHeroDots({restartProgress:true});
       }
     }
   };
@@ -792,12 +826,14 @@ function goToHero(nextIndex,{direction=null,animate=true}={}){
     ? (normalized>current || (current===heroItems.length-1&&normalized===0) ? 1 : -1)
     : direction;
 
+  renderHeroDots({restartProgress:false});
+
   if(animate){
     animateHeroTransition(targetItem,dir);
   }else{
     setHero(targetItem);
     scheduleHeroTimer(5000);
-    renderHeroDots();
+    renderHeroDots({restartProgress:true});
   }
 }
 
@@ -834,8 +870,8 @@ async function startHeroCarousel(pool,scope=currentFilter){
     if(run!==heroLoadRun)return;
 
     setHero(heroItems[0]);
-    renderHeroDots();
     scheduleHeroTimer(5000);
+    renderHeroDots({restartProgress:true});
 
     void Promise.all(heroItems.slice(1).map(loadTitleLogo)).catch(()=>{});
   })();
