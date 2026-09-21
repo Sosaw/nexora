@@ -1,0 +1,321 @@
+name: NEXORA carousel patch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: contains(github.event.head_commit.message, 'NEXORA carousel patch bootstrap')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch carousel implementation
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          app = Path("app.js")
+          css = Path("style.css")
+          a = app.read_text()
+          c = css.read_text()
+
+          marker = "// NEXORA — carrousel horizontal circulaire"
+          if marker not in a:
+              insert = r'''
+// NEXORA — carrousel horizontal circulaire
+(() => {
+  const rows = new WeakMap();
+
+  function getRowState(shell, list) {
+    let state = rows.get(shell);
+    if (!state) {
+      state = { list, originals: null, unit: 0, ready: false, ticking: false };
+      rows.set(shell, state);
+    }
+    return state;
+  }
+
+  function setButtonState(shell, list) {
+    const left = shell.querySelector(".row-scroll-left");
+    const right = shell.querySelector(".row-scroll-right");
+    if (!left || !right) return;
+
+    const max = Math.max(0, list.scrollWidth - list.clientWidth);
+    const overflowing = max > 2;
+
+    if (!overflowing) {
+      left.disabled = true;
+      right.disabled = true;
+      shell.classList.remove("has-left", "has-right");
+      return;
+    }
+
+    // With the circular track, both directions are available while there is overflow.
+    left.disabled = false;
+    right.disabled = false;
+    shell.classList.add("has-left", "has-right");
+  }
+
+  function prepareRow(shell) {
+    const list = shell.querySelector(".row-scroll-list");
+    if (!list || list.dataset.carouselReady === "true") {
+      if (list) setButtonState(shell, list);
+      return;
+    }
+
+    const cards = [...list.children];
+    if (cards.length < 2) {
+      list.dataset.carouselReady = "true";
+      setButtonState(shell, list);
+      return;
+    }
+
+    // Three copies give the native horizontal scroller enough runway to loop
+    // without exposing a scrollbar or changing the existing card markup.
+    const original = cards.map(card => card.cloneNode(true));
+    const before = original.map(card => {
+      card.dataset.carouselClone = "true";
+      card.setAttribute("aria-hidden", "true");
+      return card;
+    });
+    const after = original.map(card => {
+      card.dataset.carouselClone = "true";
+      card.setAttribute("aria-hidden", "true");
+      return card;
+    });
+
+    const gap = parseFloat(getComputedStyle(list).columnGap || getComputedStyle(list).gap || "0") || 0;
+    const firstWidth = cards[0].getBoundingClientRect().width;
+    const unit = (firstWidth + gap) * cards.length;
+
+    state = getRowState(shell, list);
+    state.originals = original;
+    state.unit = unit;
+    state.ready = true;
+
+    list.prepend(...before);
+    list.append(...after);
+    list.dataset.carouselReady = "true";
+
+    requestAnimationFrame(() => {
+      list.scrollLeft = unit;
+      setButtonState(shell, list);
+    });
+  }
+
+  function wrapRow(shell) {
+    const state = rows.get(shell);
+    if (!state?.ready || !state.unit) return;
+    const list = state.list;
+    const unit = state.unit;
+
+    if (list.scrollLeft < unit * 0.5) {
+      list.scrollLeft += unit;
+    } else if (list.scrollLeft >= unit * 1.5) {
+      list.scrollLeft -= unit;
+    }
+  }
+
+  function scrollRow(shell, direction) {
+    const list = shell.querySelector(".row-scroll-list");
+    if (!list) return;
+
+    prepareRow(shell);
+
+    const state = rows.get(shell);
+    const amount = Math.max(list.clientWidth * 0.82, 320);
+    const max = Math.max(0, list.scrollWidth - list.clientWidth);
+
+    if (!state?.ready || !state.unit) return;
+
+    const current = list.scrollLeft;
+    let target = current + direction * amount;
+
+    // Keep the track inside the middle copy and let the scroll handler perform
+    // the invisible wrap at either end.
+    if (direction > 0 && target >= state.unit * 1.5) target -= state.unit;
+    if (direction < 0 && target < state.unit * 0.5) target += state.unit;
+
+    target = Math.max(0, Math.min(max, target));
+    list.scrollTo({ left: target, behavior: "smooth" });
+  }
+
+  function syncRows() {
+    document.querySelectorAll(".row-cards-shell").forEach(prepareRow);
+  }
+
+  document.addEventListener("click", event => {
+    const button = event.target.closest?.(".row-scroll-control");
+    if (!button || button.disabled) return;
+    const shell = button.closest(".row-cards-shell");
+    if (!shell) return;
+    event.preventDefault();
+    scrollRow(shell, Number(button.dataset.rowScroll) || 1);
+  });
+
+  document.addEventListener("scroll", event => {
+    const list = event.target?.closest?.(".row-scroll-list");
+    if (!list) return;
+    const shell = list.closest(".row-cards-shell");
+    if (!shell) return;
+    wrapRow(shell);
+    setButtonState(shell, list);
+  }, true);
+
+  window.addEventListener("resize", () => {
+    document.querySelectorAll(".row-cards-shell").forEach(shell => {
+      const list = shell.querySelector(".row-scroll-list");
+      const state = rows.get(shell);
+      if (!list || !state?.ready) return;
+      // Recalculate the loop unit after responsive card resizing.
+      const originals = [...list.children].filter(card => card.dataset.carouselClone !== "true");
+      const count = Math.max(1, originals.length);
+      const gap = parseFloat(getComputedStyle(list).columnGap || getComputedStyle(list).gap || "0") || 0;
+      const width = originals[0]?.getBoundingClientRect().width || 0;
+      state.unit = (width + gap) * count;
+      setButtonState(shell, list);
+    });
+  });
+
+  const observer = new MutationObserver(() => syncRows());
+  observer.observe(document.getElementById("content") || document.body, { childList: true, subtree: true });
+
+  syncRows();
+})();
+'''
+              needle = 'if(typeof loadContents === \'function\') loadContents();'
+              if needle not in a:
+                  raise SystemExit("loadContents bootstrap marker not found")
+              a = a.replace(needle, insert + "\n" + needle, 1)
+
+          css_marker = "/* NEXORA — carrousel horizontal circulaire */"
+          if css_marker not in c:
+              css_patch = r'''
+/* NEXORA — carrousel horizontal circulaire */
+.row-cards-shell{
+  position:relative;
+  isolation:isolate;
+  overflow:visible;
+}
+.row-cards-shell .row-scroll-list{
+  position:relative;
+  overflow-x:auto;
+  overflow-y:visible;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  scroll-behavior:smooth;
+  overscroll-behavior-x:contain;
+  mask-image:none;
+  -webkit-mask-image:none;
+}
+.row-cards-shell .row-scroll-list::-webkit-scrollbar{display:none}
+.row-edge-fade{
+  position:absolute;
+  top:0;
+  bottom:14px;
+  width:112px;
+  z-index:8;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .22s ease;
+  backdrop-filter:blur(9px);
+  -webkit-backdrop-filter:blur(9px);
+}
+.row-edge-fade-left{
+  left:0;
+  background:linear-gradient(90deg,rgba(7,8,11,.94) 0%,rgba(7,8,11,.64) 35%,rgba(7,8,11,.16) 72%,transparent 100%);
+}
+.row-edge-fade-right{
+  right:0;
+  background:linear-gradient(270deg,rgba(7,8,11,.96) 0%,rgba(7,8,11,.66) 35%,rgba(7,8,11,.18) 72%,transparent 100%);
+}
+.row-scroll-control{
+  position:absolute;
+  top:50%;
+  z-index:10;
+  width:46px;
+  height:46px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:12px;
+  background:rgba(18,20,27,.62);
+  color:#fff;
+  font-size:27px;
+  font-weight:350;
+  line-height:1;
+  cursor:pointer;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transform:translateY(-50%);
+  backdrop-filter:blur(16px) saturate(120%);
+  -webkit-backdrop-filter:blur(16px) saturate(120%);
+  box-shadow:0 10px 30px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:opacity .2s ease,visibility .2s ease,background .2s ease,transform .2s ease;
+}
+.row-scroll-left{left:18px}
+.row-scroll-right{right:18px}
+.row:hover .row-scroll-control,
+.row:focus-within .row-scroll-control{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
+.row:hover .row-edge-fade,
+.row:focus-within .row-edge-fade{
+  opacity:1;
+}
+.row-scroll-control:disabled{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+.row-scroll-control:hover{
+  background:rgba(28,31,40,.78);
+  transform:translateY(-50%) scale(1.04);
+}
+.row-scroll-control:active{
+  transform:translateY(-50%) scale(.98);
+}
+@media(max-width:760px){
+  .row-edge-fade{width:70px}
+  .row-scroll-control{width:40px;height:40px;border-radius:11px;font-size:23px}
+  .row-scroll-left{left:8px}
+  .row-scroll-right{right:8px}
+}
+'''
+              c += "\n" + css_patch
+
+          app.write_text(a)
+          css.write_text(c)
+          PY
+
+      - name: Verify patch and commit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          a = Path("app.js").read_text()
+          c = Path("style.css").read_text()
+          assert a.count("// NEXORA — carrousel horizontal circulaire") == 1
+          assert a.count('data-row-scroll') >= 1
+          assert c.count("/* NEXORA — carrousel horizontal circulaire */") == 1
+          assert ".row-scroll-control" in c
+          assert "border-radius:12px" in c
+          print("NEXORA carousel patch verification: OK")
+          PY
+
+          rm -f .github/workflows/nexora-carousel-patch.yml
+          git config user.name "NEXORA"
+          git config user.email "nexora@users.noreply.github.com"
+          git add app.js style.css .github/workflows/nexora-carousel-patch.yml
+          git commit -m "feat: NEXORA carousel navigation [skip ci]"
+          git push
