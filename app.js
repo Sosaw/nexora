@@ -598,6 +598,7 @@ function animateHeroTransition(item,direction=1){
     return;
   }
 
+  hero.dataset.heroDirection=direction>0?"next":"prev";
   const oldStage=stage.cloneNode(true);
   stripCloneIds(oldStage);
   oldStage.classList.add("hero-slide","hero-slide-out");
@@ -621,6 +622,7 @@ function animateHeroTransition(item,direction=1){
     stage.classList.remove("hero-slide-prep","hero-slide-in");
     stage.style.transition="";
     stage.style.transform="";
+    delete hero.dataset.heroDirection;
     if(heroTransitionCleanup===cleanup)heroTransitionCleanup=null;
   };
   heroTransitionCleanup=cleanup;
