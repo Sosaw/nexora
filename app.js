@@ -410,18 +410,20 @@ function syncRowScrollControls(list){
   const overflowing=maxScroll>8;
   const atStart=list.scrollLeft<=8;
   const atEnd=list.scrollLeft>=maxScroll-8;
-  shell.classList.toggle("has-left",overflowing&&!atStart);
-  shell.classList.toggle("has-right",overflowing&&!atEnd);
   const showLeft=overflowing&&!atStart;
   const showRight=overflowing&&!atEnd;
-  carousel?.leftButton?.toggleAttribute("disabled",!showLeft);
-  carousel?.rightButton?.toggleAttribute("disabled",!showRight);
+
+  shell.classList.toggle("has-left",showLeft);
+  shell.classList.toggle("has-right",showRight);
+
   if(carousel?.leftButton){
-    carousel.leftButton.hidden=!showLeft;
+    carousel.leftButton.disabled=!showLeft;
+    carousel.leftButton.style.display=showLeft?"grid":"none";
     carousel.leftButton.setAttribute("aria-hidden",showLeft?"false":"true");
   }
   if(carousel?.rightButton){
-    carousel.rightButton.hidden=!showRight;
+    carousel.rightButton.disabled=!showRight;
+    carousel.rightButton.style.display=showRight?"grid":"none";
     carousel.rightButton.setAttribute("aria-hidden",showRight?"false":"true");
   }
 }
@@ -447,20 +449,17 @@ function bindRowScrollControls(root){
           leftButton,
           rightButton,
           overflowing:false,
-          moved:false,
           scrollBy(direction){
             const dir=Number(direction||1);
             const distance=Math.max(getUnit(),Math.round(list.clientWidth*.82));
             const max=Math.max(0,list.scrollWidth-list.clientWidth);
             const target=Math.max(0,Math.min(max,list.scrollLeft+dir*distance));
             list.scrollTo({left:target,behavior:"smooth"});
-            carousel.moved=target>12;
           }
         };
 
         const updateOverflow=()=>{
           carousel.overflowing=list.scrollWidth-list.clientWidth>8;
-          carousel.moved=carousel.moved||list.scrollLeft>12;
           syncRowScrollControls(list);
         };
 
@@ -468,7 +467,6 @@ function bindRowScrollControls(root){
           if(list._nexoraScrollFrame)return;
           list._nexoraScrollFrame=requestAnimationFrame(()=>{
             list._nexoraScrollFrame=0;
-            carousel.moved=carousel.moved||list.scrollLeft>12;
             syncRowScrollControls(list);
           });
         },{passive:true});
