@@ -406,22 +406,21 @@ function syncRowScrollControls(list){
   const shell=list?.closest(".row-cards-shell");
   if(!shell)return;
   const carousel=list._nexoraCarousel;
-  const overflowing=carousel
-    ? carousel.overflowing
-    : list.scrollWidth-list.clientWidth>8;
-  const moved=carousel?.moved===true || list.scrollLeft>12;
-  shell.classList.toggle("has-left",overflowing&&moved);
-  shell.classList.toggle("has-right",overflowing);
-  carousel?.leftButton?.toggleAttribute("disabled",!overflowing||list.scrollLeft<=12);
-  carousel?.rightButton?.toggleAttribute("disabled",!overflowing);
+  const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
+  const overflowing=maxScroll>8;
+  const atStart=list.scrollLeft<=12;
+  const atEnd=list.scrollLeft>=maxScroll-12;
+  shell.classList.toggle("has-left",overflowing&&!atStart);
+  shell.classList.toggle("has-right",overflowing&&!atEnd);
+  carousel?.leftButton?.toggleAttribute("disabled",!overflowing||atStart);
+  carousel?.rightButton?.toggleAttribute("disabled",!overflowing||atEnd);
 }
 
 function bindRowScrollControls(root){
   root.querySelectorAll(".row-cards-shell .row-scroll-list").forEach(list=>{
     if(list.dataset.rowScrollBound!=="1"){
       list.dataset.rowScrollBound="1";
-      const originals=[...list.children];
-      if(originals.length>1){
+      if(list.children.length>1){
         const shell=list.closest(".row-cards-shell");
         const leftButton=shell?.querySelector(".row-scroll-left");
         const rightButton=shell?.querySelector(".row-scroll-right");
@@ -435,7 +434,6 @@ function bindRowScrollControls(root){
 
         const carousel=list._nexoraCarousel={
           getUnit,
-          originalCount:originals.length,
           leftButton,
           rightButton,
           overflowing:false,
