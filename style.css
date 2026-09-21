@@ -24,6 +24,8 @@ body.catalog-only main{padding-top:92px}
   transform:translate3d(0,0,0);
 }
 .hero-slide-out{
+  z-index:1;
+  pointer-events:none;
   transition:transform .52s cubic-bezier(.22,.61,.36,1);
 }
 .hero-slide-out.is-sliding{
@@ -39,7 +41,7 @@ body.catalog-only main{padding-top:92px}
 .hero-slide-prep .hero-backdrop{
   transition:none!important;
 }
-.hero-slide-out .hero-content{
+.hero-slide .hero-content{
   animation:none!important;
 }
 
