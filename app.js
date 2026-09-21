@@ -450,8 +450,8 @@ function bindCards(){
   }
   const cards=[...root.querySelectorAll(".title-card")];
   void (async()=>{
-    for(let i=0;i<cards.length;i+=8){
-      await Promise.all(cards.slice(i,i+8).map(card=>hydrateTitleCardLogo(card)));
+    for(let i=0;i<cards.length;i+=24){
+      await Promise.all(cards.slice(i,i+24).map(card=>hydrateTitleCardLogo(card)));
     }
   })();
 }
