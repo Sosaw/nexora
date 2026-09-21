@@ -556,7 +556,7 @@ function stopHeroCarousel(){
   heroReadyPromise=Promise.resolve();
 }
 
-function renderHeroDots({restartProgress=false}={}){
+function renderHeroDots({restartProgress=false,preserveProgress=false}={}){
   const dots=$("heroDots");
   if(!dots)return;
 
@@ -593,15 +593,15 @@ function renderHeroDots({restartProgress=false}={}){
     button.dataset.heroIndex=String(index);
     button.setAttribute("aria-label","Afficher "+String(item.title||""));
     button.classList.toggle("active",index===heroIndex);
-    button.classList.remove("progressing");
+    if(!preserveProgress)button.classList.remove("progressing");
     fragment.appendChild(button);
   });
 
   dots.replaceChildren(fragment);
-  syncHeroDotProgress({restart:restartProgress});
+  syncHeroDotProgress({restart:restartProgress,preserve:preserveProgress});
 }
 
-function syncHeroDotProgress({restart=false}={}){
+function syncHeroDotProgress({restart=false,preserve=false}={}){
   const dots=$("heroDots");
   if(!dots||!heroItems.length)return;
 
@@ -611,7 +611,8 @@ function syncHeroDotProgress({restart=false}={}){
   dots.querySelectorAll("[data-hero-key]").forEach(button=>{
     const active=button===activeButton;
     button.classList.toggle("active",active);
-    button.classList.toggle("progressing",restart&&active);
+    if(restart)button.classList.toggle("progressing",active);
+    else if(!preserve)button.classList.remove("progressing");
   });
 }
 
@@ -701,7 +702,7 @@ function updateHeroCarousel(pool,scope=currentFilter){
   heroIndex=nextIndex;
   activeHeroItem=nextItems[nextIndex];
 
-  if(oldSequence!==newSequence)renderHeroDots();
+  if(oldSequence!==newSequence)renderHeroDots({preserveProgress:true});
 
   // A catalog refresh must never restart the current 5-second deadline.
   if(!heroTimer&&!heroTransitionBusy){
