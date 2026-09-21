@@ -610,7 +610,7 @@ function animateHeroTransition(item,direction=1){
   const oldBackdrop=backdrop.cloneNode(true);
   oldBackdrop.removeAttribute("id");
   oldBackdrop.classList.add("hero-transition-layer","hero-transition-backdrop","hero-transition-out");
-  oldBackdrop.style.zIndex="1";
+  oldBackdrop.style.zIndex="0";
 
   const oldContent=content.cloneNode(true);
   stripCloneIds(oldContent);
