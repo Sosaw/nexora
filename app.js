@@ -405,15 +405,19 @@ function resolveContentId(raw){
 function syncRowScrollControls(list){
   const shell=list?.closest(".row-cards-shell");
   if(!shell)return;
-  const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
-  const overflowing=maxScroll>8;
   const carousel=list._nexoraCarousel;
-  const start=carousel?.startScroll||0;
-  const moved=Math.abs(list.scrollLeft-start)>12;
+  if(!carousel){
+    const overflowing=list.scrollWidth-list.clientWidth>8;
+    shell.classList.toggle("has-left",false);
+    shell.classList.toggle("has-right",overflowing);
+    return;
+  }
+  const overflowing=carousel.overflowing;
+  const moved=Math.abs(list.scrollLeft-carousel.startScroll)>12;
   shell.classList.toggle("has-left",overflowing&&moved);
   shell.classList.toggle("has-right",overflowing);
-  shell.querySelector(".row-scroll-left")?.toggleAttribute("disabled",!overflowing||!moved);
-  shell.querySelector(".row-scroll-right")?.toggleAttribute("disabled",!overflowing);
+  carousel.leftButton?.toggleAttribute("disabled",!overflowing||!moved);
+  carousel.rightButton?.toggleAttribute("disabled",!overflowing);
 }
 
 function bindRowScrollControls(root){
@@ -422,6 +426,9 @@ function bindRowScrollControls(root){
       list.dataset.rowScrollBound="1";
       const originals=[...list.children];
       if(originals.length>1){
+        const shell=list.closest(".row-cards-shell");
+        const leftButton=shell?.querySelector(".row-scroll-left");
+        const rightButton=shell?.querySelector(".row-scroll-right");
         const getUnit=()=>{
           const gap=parseFloat(getComputedStyle(list).gap||"0")||0;
           const width=originals[0]?.getBoundingClientRect().width||0;
@@ -435,15 +442,18 @@ function bindRowScrollControls(root){
           return clone;
         });
 
-        // Quatre copies supplémentaires gardent le défilement dans une zone sûre.
-        list.prepend(...cloneSet("before-1"),...cloneSet("before-2"));
-        list.append(...cloneSet("after-1"),...cloneSet("after-2"));
+        // Trois copies au total suffisent pour boucler sans multiplier le DOM.
+        list.prepend(...cloneSet("before"));
+        list.append(...cloneSet("after"));
 
         list._nexoraCarousel={
           getUnit,
           originalCount:originals.length,
           startScroll:0,
           lastScrollLeft:0,
+          overflowing:false,
+          leftButton,
+          rightButton,
           scrollBy(direction){
             const distance=Math.max(420,Math.round(list.clientWidth*.82));
             list.scrollTo({
@@ -454,34 +464,38 @@ function bindRowScrollControls(root){
         };
 
         requestAnimationFrame(()=>{
-          const unit=getUnit();
-          const start=unit*2;
-          list._nexoraCarousel.startScroll=start;
-          list._nexoraCarousel.lastScrollLeft=start;
+          const carousel=list._nexoraCarousel;
+          if(!carousel)return;
+          const unit=carousel.getUnit();
+          const start=unit;
+          carousel.startScroll=start;
+          carousel.lastScrollLeft=start;
+          carousel.overflowing=list.scrollWidth-list.clientWidth>8;
           list.scrollLeft=start;
           syncRowScrollControls(list);
         });
       }
 
+      let scrollFrame=0;
       list.addEventListener("scroll",()=>{
-        const carousel=list._nexoraCarousel;
-        if(carousel){
-          const unit=carousel.getUnit();
-          if(unit>1){
-            const raw=list.scrollLeft;
-
-            // Recentrage uniquement aux extrémités : les copies sont identiques,
-            // donc aucun retour visuel au premier titre n'est perceptible.
-            if(raw<unit*.5){
-              list.scrollLeft=raw+(unit*2);
-            }else if(raw>=unit*4.5){
-              list.scrollLeft=raw-(unit*2);
+        if(scrollFrame)return;
+        scrollFrame=requestAnimationFrame(()=>{
+          scrollFrame=0;
+          const carousel=list._nexoraCarousel;
+          if(carousel){
+            const unit=carousel.getUnit();
+            if(unit>1){
+              const raw=list.scrollLeft;
+              if(raw<unit*.5){
+                list.scrollLeft=raw+unit;
+              }else if(raw>=unit*1.5){
+                list.scrollLeft=raw-unit;
+              }
+              carousel.lastScrollLeft=list.scrollLeft;
             }
-
-            carousel.lastScrollLeft=list.scrollLeft;
           }
-        }
-        syncRowScrollControls(list);
+          syncRowScrollControls(list);
+        });
       },{passive:true});
 
       if(typeof ResizeObserver==="function"){
@@ -489,11 +503,12 @@ function bindRowScrollControls(root){
           const carousel=list._nexoraCarousel;
           if(carousel){
             const unit=carousel.getUnit();
-            const nextStart=unit*2;
+            const nextStart=unit;
             if(Math.abs(list.scrollLeft-carousel.startScroll)<12){
               list.scrollLeft=nextStart;
             }
             carousel.startScroll=nextStart;
+            carousel.overflowing=list.scrollWidth-list.clientWidth>8;
             carousel.lastScrollLeft=list.scrollLeft;
           }
           syncRowScrollControls(list);
