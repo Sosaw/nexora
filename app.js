@@ -300,8 +300,13 @@ function section(title,items,suffix="",filter="",layout="row"){
   if(!items.length)return"";
   const count=items.length;
   const visible=layout==="grid"?items:items.slice(0,24);
-  const listClass=layout==="grid"?"cards catalog-grid":"cards";
-  return `<section class="row ${layout==="grid"?"row-grid-view":""}"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div>${layout==="grid"?"":`<button class="row-link" data-row-filter="${filter}">${suffix||`${count} titre${count>1?"s":""}`} <span>→</span></button>`}</div><div class="${listClass}">${visible.map(card).join("")}</div></section>`;
+  const listClass=layout==="grid"?"cards catalog-grid":"cards row-scroll-list";
+
+  if(layout==="grid"){
+    return `<section class="row row-grid-view"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div></div><div class="${listClass}">${visible.map(card).join("")}</div></section>`;
+  }
+
+  return `<section class="row"><div class="row-head"><div class="row-heading"><span class="row-eyebrow">NEXORA</span><h2>${title}</h2></div><button class="row-link" data-row-filter="${filter}">${suffix||`${count} titre${count>1?"s":""}`} <span>→</span></button></div><div class="row-cards-shell"><div class="row-edge-fade row-edge-fade-left" aria-hidden="true"></div><button class="row-scroll-control row-scroll-left" type="button" data-row-scroll="-1" aria-label="Défiler ${escapeAttr(title)} vers la gauche">‹</button><div class="${listClass}">${visible.map(card).join("")}</div><div class="row-edge-fade row-edge-fade-right" aria-hidden="true"></div><button class="row-scroll-control row-scroll-right" type="button" data-row-scroll="1" aria-label="Défiler ${escapeAttr(title)} vers la droite">›</button></div></section>`;
 }
 function getWatchState(){try{return JSON.parse(localStorage.getItem("nexora_watch")||"{}")}catch{return{}}}
 function saveWatchState(state){localStorage.setItem("nexora_watch",JSON.stringify(state))}
@@ -397,6 +402,33 @@ function resolveContentId(raw){
   const found=contents.find(x=>String(x.id)===value);
   return found ? found.id : null;
 }
+function syncRowScrollControls(list){
+  const shell=list?.closest(".row-cards-shell");
+  if(!shell)return;
+  const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
+  const atLeft=list.scrollLeft<=8;
+  const atRight=list.scrollLeft>=maxScroll-8;
+  shell.classList.toggle("has-left",!atLeft&&maxScroll>8);
+  shell.classList.toggle("has-right",!atRight&&maxScroll>8);
+  shell.querySelector(".row-scroll-left")?.toggleAttribute("disabled",atLeft||maxScroll<=8);
+  shell.querySelector(".row-scroll-right")?.toggleAttribute("disabled",atRight||maxScroll<=8);
+}
+
+function bindRowScrollControls(root){
+  root.querySelectorAll(".row-cards-shell .row-scroll-list").forEach(list=>{
+    if(list.dataset.rowScrollBound!=="1"){
+      list.dataset.rowScrollBound="1";
+      list.addEventListener("scroll",()=>syncRowScrollControls(list),{passive:true});
+      if(typeof ResizeObserver==="function"){
+        const observer=new ResizeObserver(()=>syncRowScrollControls(list));
+        observer.observe(list);
+        list._nexoraRowScrollObserver=observer;
+      }
+    }
+    syncRowScrollControls(list);
+  });
+}
+
 function bindCards(){
   const root=$("content");
   if(!root)return;
@@ -412,6 +444,19 @@ function bindCards(){
       if(card)hydrateTitleCardLogo(card);
     });
     root.addEventListener("click",e=>{
+      const scrollControl=e.target.closest("[data-row-scroll]");
+      if(scrollControl){
+        e.preventDefault();
+        e.stopPropagation();
+        const shell=scrollControl.closest(".row-cards-shell");
+        const list=shell?.querySelector(".row-scroll-list");
+        if(!list)return;
+        const direction=Number(scrollControl.dataset.rowScroll)||1;
+        const distance=Math.max(420,Math.round(list.clientWidth*.82));
+        list.scrollBy({left:direction*distance,behavior:"smooth"});
+        return;
+      }
+
       const rowLink=e.target.closest(".row-link");
       if(rowLink){
         e.preventDefault();
@@ -447,6 +492,7 @@ function bindCards(){
       await Promise.all(cards.slice(i,i+24).map(card=>hydrateTitleCardLogo(card)));
     }
   })();
+  bindRowScrollControls(root);
 }
 
 function render(){
