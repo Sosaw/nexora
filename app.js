@@ -405,27 +405,29 @@ function resolveContentId(raw){
 function syncRowScrollControls(list){
   const shell=list?.closest(".row-cards-shell");
   if(!shell)return;
+
   const carousel=list._nexoraCarousel;
   const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
-  const overflowing=maxScroll>8;
-  const atStart=list.scrollLeft<=8;
-  const atEnd=list.scrollLeft>=maxScroll-8;
-  const showLeft=overflowing&&!atStart;
-  const showRight=overflowing&&!atEnd;
+  const EPSILON=8;
+  const overflowing=maxScroll>EPSILON;
+  const showLeft=overflowing && list.scrollLeft>EPSILON;
+  const showRight=overflowing && list.scrollLeft<maxScroll-EPSILON;
 
   shell.classList.toggle("has-left",showLeft);
   shell.classList.toggle("has-right",showRight);
 
-  if(carousel?.leftButton){
-    carousel.leftButton.disabled=!showLeft;
-    carousel.leftButton.style.display=showLeft?"grid":"none";
-    carousel.leftButton.setAttribute("aria-hidden",showLeft?"false":"true");
-  }
-  if(carousel?.rightButton){
-    carousel.rightButton.disabled=!showRight;
-    carousel.rightButton.style.display=showRight?"grid":"none";
-    carousel.rightButton.setAttribute("aria-hidden",showRight?"false":"true");
-  }
+  const syncButton=(button,show)=>{
+    if(!button)return;
+    button.disabled=!show;
+    button.style.display=show?"grid":"none";
+    button.style.visibility=show?"visible":"hidden";
+    button.style.pointerEvents=show?"auto":"none";
+    button.setAttribute("aria-hidden",show?"false":"true");
+    button.setAttribute("tabindex",show?"0":"-1");
+  };
+
+  syncButton(carousel?.leftButton,showLeft);
+  syncButton(carousel?.rightButton,showRight);
 }
 
 function bindRowScrollControls(root){
