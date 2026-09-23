@@ -841,21 +841,18 @@ body.player-open{overflow:hidden}
   position:absolute;
   top:4px;
   bottom:16px;
-  width:30px;
+  width:24px;
   z-index:2;
   pointer-events:none;
-  opacity:0;
 }
 .row-cards-shell::before{
   left:0;
-  background:linear-gradient(90deg,rgba(7,8,11,.28),rgba(7,8,11,0));
+  background:linear-gradient(90deg,rgba(7,8,11,.24),rgba(7,8,11,0));
 }
 .row-cards-shell::after{
   right:0;
-  background:linear-gradient(270deg,rgba(7,8,11,.28),rgba(7,8,11,0));
+  background:linear-gradient(270deg,rgba(7,8,11,.24),rgba(7,8,11,0));
 }
-.row-cards-shell.has-left::before{opacity:1}
-.row-cards-shell.has-right::after{opacity:1}
 .row-cards-shell .row-scroll-list{
   position:relative;
   overflow-x:auto;
