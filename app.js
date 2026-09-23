@@ -407,6 +407,8 @@ function syncRowScrollControls(list){
   if(!shell)return;
 
   const carousel=list._nexoraCarousel;
+  const leftButton=carousel?.leftButton||shell.querySelector(".row-scroll-left");
+  const rightButton=carousel?.rightButton||shell.querySelector(".row-scroll-right");
   const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
   const EPSILON=8;
   const overflowing=maxScroll>EPSILON;
@@ -427,8 +429,8 @@ function syncRowScrollControls(list){
     button.setAttribute("tabindex",show?"0":"-1");
   };
 
-  syncButton(carousel?.leftButton,showLeft);
-  syncButton(carousel?.rightButton,showRight);
+  syncButton(leftButton,showLeft);
+  syncButton(rightButton,showRight);
 }
 
 function bindRowScrollControls(root){
