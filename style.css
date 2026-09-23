@@ -150,7 +150,6 @@ body.catalog-only main{padding-top:92px}
 .catalog-tabs-label + .catalog-tabs{padding-top:0}
 @media(max-width:900px){.catalog-tabs-label{margin-left:5%;margin-right:5%}}
 
-/* NEXORA — épisodes : styles centralisés plus bas */
 
 /* NEXORA V4.14 — fiches contenu, casting et bande-annonce */
 .card-hover-desc{position:absolute;left:15px;right:15px;top:15px;max-height:76px;overflow:hidden;font-size:11px;line-height:1.45;color:#f1f2f5;background:rgba(7,9,13,.72);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 10px;backdrop-filter:blur(12px);opacity:0;transform:translateY(-6px);transition:.25s;z-index:3;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
