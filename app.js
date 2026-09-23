@@ -419,9 +419,10 @@ function syncRowScrollControls(list){
   const syncButton=(button,show)=>{
     if(!button)return;
     button.disabled=!show;
-    button.style.display=show?"grid":"none";
-    button.style.visibility=show?"visible":"hidden";
-    button.style.pointerEvents=show?"auto":"none";
+    button.hidden=!show;
+    button.style.setProperty("display",show?"grid":"none","important");
+    button.style.setProperty("visibility",show?"visible":"hidden","important");
+    button.style.setProperty("pointer-events",show?"auto":"none","important");
     button.setAttribute("aria-hidden",show?"false":"true");
     button.setAttribute("tabindex",show?"0":"-1");
   };
