@@ -833,10 +833,7 @@ body.player-open{overflow:hidden}
   flex:none;
 }
 /* NEXORA — contrôles de carrousel */
-.row-cards-shell{
-  position:relative;
-  overflow:visible;
-}
+.row-cards-shell{position:relative;overflow:visible}
 .row-cards-shell::before,
 .row-cards-shell::after{
   content:"";
@@ -851,14 +848,15 @@ body.player-open{overflow:hidden}
 }
 .row-cards-shell::before{
   left:0;
-  background:linear-gradient(90deg,rgba(7,8,11,.30),rgba(7,8,11,0));
+  background:linear-gradient(90deg,rgba(7,8,11,.34),rgba(7,8,11,0));
 }
 .row-cards-shell::after{
   right:0;
-  background:linear-gradient(270deg,rgba(7,8,11,.30),rgba(7,8,11,0));
+  background:linear-gradient(270deg,rgba(7,8,11,.34),rgba(7,8,11,0));
 }
 .row-cards-shell.has-left::before{opacity:1}
 .row-cards-shell.has-right::after{opacity:1}
+.row-scroll-control[hidden]{display:none!important}
 
 .row-cards-shell .row-scroll-list{
   position:relative;
