@@ -296,7 +296,23 @@ function card(item){
   "</article>";
 }
 
+function contentDedupKey(item){
+  const tmdb=Number(item?.tmdb_id||0);
+  if(tmdb)return `tmdb:${tmdb}`;
+  return `fallback:${String(item?.type||"").toLowerCase()}:${String(item?.title||"").trim().toLowerCase()}:${String(item?.year||"")}`;
+}
+function uniqueContentItems(items){
+  const seen=new Set();
+  return (items||[]).filter(item=>{
+    const key=contentDedupKey(item);
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function section(title,items,suffix="",filter="",layout="row"){
+  items=uniqueContentItems(items);
   if(!items.length)return"";
   const count=items.length;
   const visible=layout==="grid"?items:items.slice(0,24);
@@ -1271,8 +1287,15 @@ async function openPerson(personId,{updateHistory=true}={}){
         .filter(item=>item?.tmdb_id && item?.is_available===true)
         .map(item=>[Number(item.tmdb_id),item])
     );
+    const seenCredits=new Set();
     const credits=(p.combined_credits?.cast||[])
-      .filter(x=>x?.id&&x?.media_type&&nexoraByTmdb.has(Number(x.id)))
+      .filter(x=>{
+        if(!x?.id||!x?.media_type||!nexoraByTmdb.has(Number(x.id)))return false;
+        const key=String(x.id);
+        if(seenCredits.has(key))return false;
+        seenCredits.add(key);
+        return true;
+      })
       .sort((a,b)=>Number(b.popularity||0)-Number(a.popularity||0))
       .slice(0,24);
     $("content").innerHTML=`<section class="person-page"><button class="detail-back" id="personBack">← Retour</button><div class="person-head"><div class="person-photo" style="${p.profile_path?`background-image:url('https://image.tmdb.org/t/p/h632${escapeAttr(p.profile_path)}')`:''}"></div><div><div class="detail-kicker">CASTING NEXORA</div><h1>${escapeHtml(p.name||"Acteur")}</h1><p>${escapeHtml(p.biography||"Biographie indisponible.")}</p>${p.birthday?`<div class="detail-meta">Né(e) le ${escapeHtml(new Date(p.birthday).toLocaleDateString("fr-FR"))}${p.place_of_birth?` · ${escapeHtml(p.place_of_birth)}`:""}</div>`:""}</div></div><div class="detail-block"><div class="detail-block-head"><span>DISPONIBLE SUR NEXORA</span><small>${credits.length} titre${credits.length>1?"s":""}</small></div><div class="credit-grid">${credits.length?credits.map(x=>{const item=nexoraByTmdb.get(Number(x.id));const title=item?.title||x.title||x.name||"Sans titre";const date=x.release_date||x.first_air_date||String(item?.year||"");const poster=item?.poster_url||(x.poster_path?`https://image.tmdb.org/t/p/w342${x.poster_path}`:"");return `<button class="credit-card" data-nexora-content-id="${escapeAttr(item.id)}"><div class="credit-poster" style="${poster?`background-image:url('${escapeAttr(poster)}')`:''}"></div><div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(date?String(date).slice(0,4):"")}</span><small>${escapeHtml(x.character||"")}</small></div></button>`}).join(""):`<p class="detail-muted">Aucun contenu de cet acteur n’est actuellement disponible sur NEXORA.</p>`}</div></div></section>`;
