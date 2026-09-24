@@ -1598,12 +1598,6 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeA
 db.auth.getSession().then(({data})=>{currentUser=data.session?.user||null;updateAuthUI()});
 db.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;updateAuthUI()});
 
-async function syncCatalogIfNeeded(){
-  // La synchronisation du catalogue est désormais pilotée côté Supabase,
-  // une fois tous les 3 jours, indépendamment des visiteurs.
-  return null;
-}
-
 async function fetchContentsPage(from=0,to=999){
   const {data,error}=await db
     .from("contents")
@@ -1687,13 +1681,6 @@ async function loadContents(){
     console.warn("Chargement du reste du catalogue impossible :",error);
   });
 
-  syncCatalogIfNeeded().then(result=>{
-    if(result){
-      console.log("Synchronisation du catalogue terminée.");
-    }
-  }).catch(error=>{
-    console.warn("Synchronisation du catalogue impossible :",error);
-  });
 }
 
 bindEpisodeControls();
