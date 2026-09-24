@@ -1180,18 +1180,7 @@
       mettreAJourSousTitres();
     }
 
-    function selectionnerSousTitreExterne(trackIndex, menuItem, label) {
-      desactiverSousTitres();
-
-      const tracks = Array.from(video.textTracks || []);
-      const track = tracks[trackIndex];
-      if (!track) return;
-
-      track.mode = 'showing';
-      document.querySelectorAll('#subsList .menu-item').forEach(item => item.classList.remove('selected'));
-      menuItem.classList.add('selected');
-      document.getElementById('metaSubsLabel').innerText = `${label} ›`;
-    }
+    
 
     function startHls(url) {
       if (hlsInstance) hlsInstance.destroy();
