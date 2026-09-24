@@ -834,17 +834,19 @@ body.player-open{overflow:hidden}
 }
 /* NEXORA — contrôles de carrousel */
 .row-cards-shell{position:relative;overflow:visible}
+
 .row-cards-shell::after{
   content:"";
   position:absolute;
   top:4px;
-  right:0;
+  right:7%;
   bottom:16px;
   width:24px;
   z-index:3;
   pointer-events:none;
   background:linear-gradient(270deg,rgba(7,8,11,.24),rgba(7,8,11,0));
 }
+
 .row-cards-shell .row-scroll-list{
   position:relative;
   overflow-x:auto;
@@ -854,6 +856,7 @@ body.player-open{overflow:hidden}
   scroll-behavior:smooth;
 }
 .row-cards-shell .row-scroll-list::-webkit-scrollbar{display:none}
+
 .row-scroll-control{
   position:absolute;
   top:50%;
@@ -881,6 +884,7 @@ body.player-open{overflow:hidden}
 }
 .row-scroll-left{left:16px}
 .row-scroll-right{right:16px}
+
 .row:hover .row-cards-shell.has-left .row-scroll-left,
 .row:focus-within .row-cards-shell.has-left .row-scroll-left,
 .row:hover .row-cards-shell.has-right .row-scroll-right,
@@ -889,6 +893,7 @@ body.player-open{overflow:hidden}
   visibility:visible;
   pointer-events:auto;
 }
+
 .row-scroll-control:disabled{
   opacity:0!important;
   visibility:hidden!important;
@@ -899,8 +904,14 @@ body.player-open{overflow:hidden}
   transform:translateY(-50%) scale(1.03);
 }
 .row-scroll-control:active{transform:translateY(-50%) scale(.98)}
+
+@media(max-width:1050px){
+  .row-cards-shell::after{right:6%}
+}
+
 @media(max-width:760px){
   .row-scroll-control{width:40px;height:40px;font-size:23px}
   .row-scroll-left{left:7px}
   .row-scroll-right{right:7px}
+  .row-cards-shell::after{right:0}
 }

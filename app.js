@@ -407,13 +407,16 @@ function syncRowScrollControls(list){
   if(!shell)return;
 
   const carousel=list._nexoraCarousel;
-  const maxScroll=Math.max(0,list.scrollWidth-list.clientWidth);
-  const EPSILON=1;
-  const scrollLeft=Math.max(0,Number(list.scrollLeft)||0);
-  const remainingRight=Math.max(0,maxScroll-scrollLeft);
-  const overflowing=maxScroll>EPSILON;
-  const showLeft=overflowing&&scrollLeft>EPSILON;
-  const showRight=overflowing&&remainingRight>EPSILON;
+  const firstCard=list.firstElementChild;
+  const lastCard=list.lastElementChild;
+  const viewportRect=list.getBoundingClientRect();
+  const EPSILON=2;
+
+  const firstRect=firstCard?.getBoundingClientRect();
+  const lastRect=lastCard?.getBoundingClientRect();
+
+  const showLeft=!!firstRect && firstRect.left < viewportRect.left - EPSILON;
+  const showRight=!!lastRect && lastRect.right > viewportRect.right + EPSILON;
 
   shell.classList.toggle("has-left",showLeft);
   shell.classList.toggle("has-right",showRight);
@@ -423,6 +426,7 @@ function syncRowScrollControls(list){
     button.disabled=!show;
     button.hidden=!show;
     button.style.setProperty("display",show?"grid":"none","important");
+    button.style.setProperty("visibility",show?"visible":"hidden","important");
     button.setAttribute("aria-hidden",show?"false":"true");
     button.setAttribute("tabindex",show?"0":"-1");
   };
