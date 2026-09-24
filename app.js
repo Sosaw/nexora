@@ -574,6 +574,27 @@ function bindCards(){
   bindRowScrollControls(root);
 }
 
+function renderDeferredPersonalRows(){
+  if(activeView!=="home"||currentFilter!=="all")return;
+  const contentRoot=$("content");
+  if(!contentRoot)return;
+  const state=getWatchState();
+  const resume=Object.entries(state)
+    .filter(([,v])=>v?.progress>0)
+    .sort((a,b)=>(b[1]?.lastWatched||0)-(a[1]?.lastWatched||0))
+    .map(([id])=>contents.find(x=>String(x.id)===String(id)))
+    .filter(Boolean);
+  const existing=contentRoot.querySelector('[data-personal-row="resume"]');
+  if(!resume.length){existing?.remove();return;}
+  const holder=document.createElement("div");
+  holder.innerHTML=section("Reprendre la lecture",resume,"","","row");
+  const row=holder.firstElementChild;
+  if(!row)return;
+  row.dataset.personalRow="resume";
+  if(existing)existing.replaceWith(row);else contentRoot.prepend(row);
+  bindCards();
+}
+
 function render(){
   activeView="home";
   const isMyList=currentFilter==="mylist";
@@ -601,7 +622,7 @@ function render(){
     const critics=contents.filter(x=>Number(x.rating||0)>=8.5).sort((a,b)=>Number(b.rating||0)-Number(a.rating||0));
     const news=recentFilms();
     const resume=Object.entries(getWatchState()).filter(([,v])=>v?.progress>0).sort((a,b)=>(b[1]?.lastWatched||0)-(a[1]?.lastWatched||0)).map(([id])=>contents.find(x=>String(x.id)===String(id))).filter(Boolean);
-    $("content").innerHTML=(resume.length?section("Reprendre la lecture",resume,"","","row"):"")
+    $("content").innerHTML=(resume.length?section("Reprendre la lecture",resume,"","","row").replace("<section class=\"row\">","<section class=\"row\" data-personal-row=\"resume\">"):"")
       +section("Tendances",featured.length?featured:contents.slice(0,10),"","", "row")
       +section("Films populaires",films,"Tout voir","popular-film")
       +section("Séries populaires",series,"Tout voir","popular-serie")
@@ -1712,6 +1733,7 @@ async function loadContents(){
     if(allContents.length>contents.length){
       contents=uniqueContentItems(allContents.map(normalizeContent).filter(isAllowedContent));
 
+      renderDeferredPersonalRows();
       if ($("status")) {
         $("status").innerHTML=`<span class="status-dot"></span> Catalogue disponible · ${contents.length} contenu(s)`;
       }
