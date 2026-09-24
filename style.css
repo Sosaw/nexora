@@ -700,28 +700,7 @@ body.player-open{overflow:hidden}
   flex:none;
 }
 /* NEXORA — contrôles de carrousel */
-.row-cards-shell{position:relative;overflow:visible;isolation:isolate}
-.row-cards-shell::before,
-.row-cards-shell::after{
-  content:"";
-  position:absolute;
-  top:4px;
-  bottom:16px;
-  width:42px;
-  z-index:5;
-  pointer-events:none;
-  opacity:1;
-}
-.row-cards-shell::before{
-  left:0;
-  background:linear-gradient(90deg,rgba(7,8,11,.52) 0%,rgba(7,8,11,.28) 38%,rgba(7,8,11,0) 100%);
-}
-.row-cards-shell::after{
-  right:0;
-  background:linear-gradient(270deg,rgba(7,8,11,.52) 0%,rgba(7,8,11,.28) 38%,rgba(7,8,11,0) 100%);
-}
-.row-scroll-control[hidden]{display:none!important}
-
+.row-cards-shell{position:relative;overflow:visible}
 .row-cards-shell .row-scroll-list{
   position:relative;
   overflow-x:auto;
@@ -729,8 +708,15 @@ body.player-open{overflow:hidden}
   scrollbar-width:none;
   -ms-overflow-style:none;
   scroll-behavior:smooth;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 46px,#000 calc(100% - 46px),transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 46px,#000 calc(100% - 46px),transparent 100%);
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-size:100% 100%;
+  mask-size:100% 100%;
 }
 .row-cards-shell .row-scroll-list::-webkit-scrollbar{display:none}
+.row-scroll-control[hidden]{display:none!important}
 
 .row-scroll-control{
   position:absolute;
