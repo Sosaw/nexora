@@ -855,10 +855,6 @@ body.player-open{overflow:hidden}
 }
 .row-cards-shell.has-left::before,
 .row-cards-shell.has-right::after{opacity:1}
-.row-cards-shell .row-scroll-list{
-  position:relative;
-  z-index:1;
-}
 .row-scroll-control[hidden]{display:none!important}
 
 .row-cards-shell .row-scroll-list{
