@@ -1376,39 +1376,7 @@ function updatePlayerEpisodeInfo(item,season,episode){
   title.textContent=`Saison ${season} · Épisode ${episode}${ep.name?` — ${ep.name}`:''}`;
   desc.textContent=ep.overview||`Découvrez l’épisode ${episode} de la saison ${season}.`;
 }
-function populateEpisodeControls(item, initialSeason=1, initialEpisode=1){
-  const controls=$("playerEpisodeControls");
-  const seasonSelect=$("playerSeasonSelect");
-  const episodeSelect=$("playerEpisodeSelect");
-  const type=String(item.type||item.media_type||"").toLowerCase();
-  const isSeries=["serie","series","tv","anime","show"].includes(type);
-  if(!controls||!seasonSelect||!episodeSelect)return;
-  if(!isSeries){controls.classList.add("hidden");$("playerEpisodeInfo")?.classList.add("hidden");return}
-  controls.classList.remove("hidden");$("playerEpisodeInfo")?.classList.remove("hidden");
-  const seasonNumbers=getAvailableSeasonNumbers(item);
-  const seasons=seasonNumbers.length?seasonNumbers:[1];
-  seasonSelect.innerHTML=seasons.map(n=>`<option value="${n}">Saison ${n}</option>`).join("");
-  const currentSeason=seasons.includes(Number(initialSeason))?Number(initialSeason):seasons[0];
-  const seasonMap=getSeasons(item)||{};
-  const knownEpisodes=Array.isArray(seasonMap[String(currentSeason)])?seasonMap[String(currentSeason)]:Array.isArray(seasonMap[currentSeason])?seasonMap[currentSeason]:[];
-  const episodeCount=Math.max(1,Math.min(100,knownEpisodes.length||Number(item.number_of_episodes||item.episode_count||12)));
-  episodeSelect.innerHTML=Array.from({length:episodeCount},(_,i)=>`<option value="${i+1}">Épisode ${i+1}</option>`).join("");
-  seasonSelect.value=String(currentSeason);episodeSelect.value=String(Math.min(Number(initialEpisode)||1,episodeCount));
-  const update=()=>{
-    const season=Number(seasonSelect.value),episode=Number(episodeSelect.value);
-    updatePlayerEpisodeInfo(item,season,episode);
-    renderPlayerSources(item,season,episode);
-  };
-  seasonSelect.onchange=()=>{
-    const season=Number(seasonSelect.value),map=getSeasons(item)||{};
-    const list=Array.isArray(map[String(season)])?map[String(season)]:Array.isArray(map[season])?map[season]:[];
-    const count=Math.max(1,Math.min(100,list.length||Number(item.number_of_episodes||item.episode_count||12)));
-    episodeSelect.innerHTML=Array.from({length:count},(_,i)=>`<option value="${i+1}">Épisode ${i+1}</option>`).join("");
-    episodeSelect.value="1";update();
-  };
-  episodeSelect.onchange=update;
-  updatePlayerEpisodeInfo(item,Number(seasonSelect.value),Number(episodeSelect.value));
-}
+
 function getPlayerSources(item, season=1, episode=1){
   const sources=[];
   const seasons=getSeasons(item)||{};
@@ -1892,19 +1860,6 @@ bindEpisodeControls();
         });
       }, 400);
 
-      const epSelect = document.getElementById('playerEpisodeSelect');
-      if (epSelect) {
-        epSelect.addEventListener('change', () => {
-          const v = document.getElementById('playerVideo');
-          if (v) v.pause();
-          window.runAdGate(() => {
-            if (v) {
-              v.muted = false;
-              v.play().catch(() => {});
-            }
-          });
-        });
-      }
     }
   });
 })();
