@@ -834,6 +834,17 @@ body.player-open{overflow:hidden}
 }
 /* NEXORA — contrôles de carrousel */
 .row-cards-shell{position:relative;overflow:visible}
+.row-cards-shell::after{
+  content:"";
+  position:absolute;
+  top:4px;
+  right:0;
+  bottom:16px;
+  width:24px;
+  z-index:3;
+  pointer-events:none;
+  background:linear-gradient(270deg,rgba(7,8,11,.24),rgba(7,8,11,0));
+}
 .row-cards-shell .row-scroll-list{
   position:relative;
   overflow-x:auto;
