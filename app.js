@@ -1264,10 +1264,26 @@ async function openPerson(personId,{updateHistory=true}={}){
   if(updateHistory)syncNexoraUrl(routeForPerson(personId),false);
   activeView="person";activePerson=personId;renderDetailLoading("Chargement de la fiche de l’acteur…");
   try{
-    const data=await fetchNexoraDetails({action:"person",person_id:personId});const p=data.person||{};const credits=(p.combined_credits?.cast||[]).filter(x=>x?.id&&x?.media_type).sort((a,b)=>Number(b.popularity||0)-Number(a.popularity||0)).slice(0,24);
-    $("content").innerHTML=`<section class="person-page"><button class="detail-back" id="personBack">← Retour</button><div class="person-head"><div class="person-photo" style="${p.profile_path?`background-image:url('https://image.tmdb.org/t/p/h632${escapeAttr(p.profile_path)}')`:''}"></div><div><div class="detail-kicker">CASTING NEXORA</div><h1>${escapeHtml(p.name||"Acteur")}</h1><p>${escapeHtml(p.biography||"Biographie indisponible.")}</p>${p.birthday?`<div class="detail-meta">Né(e) le ${escapeHtml(new Date(p.birthday).toLocaleDateString("fr-FR"))}${p.place_of_birth?` · ${escapeHtml(p.place_of_birth)}`:""}</div>`:""}</div></div><div class="detail-block"><div class="detail-block-head"><span>FILMS & SÉRIES</span><small>${credits.length} titres</small></div><div class="credit-grid">${credits.map(x=>{const title=x.title||x.name||"Sans titre";const date=x.release_date||x.first_air_date||"";return `<button class="credit-card" data-credit-type="${x.media_type}" data-credit-id="${x.id}"><div class="credit-poster" style="${x.poster_path?`background-image:url('https://image.tmdb.org/t/p/w342${escapeAttr(x.poster_path)}')`:''}"></div><div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(date?date.slice(0,4):"")}</span><small>${escapeHtml(x.character||"")}</small></div></button>`}).join("")}</div></div></section>`;
-    $("personBack").addEventListener("click",handleNexoraBack);document.querySelectorAll("[data-credit-id]").forEach(btn=>btn.addEventListener("click",()=>openTmdbCredit(Number(btn.dataset.creditId),btn.dataset.creditType)));window.scrollTo({top:0,behavior:"smooth"});
-  }catch(error){console.error(error);$("content").innerHTML=`<section class="detail-page"><button class="detail-back" id="personBack">← Retour</button><div class="detail-error"><h2>Impossible de charger cet acteur</h2><p>${escapeHtml(error.message||"Une erreur est survenue.")}</p></div></section>`;$("personBack").addEventListener("click",showHomeView)}
+    const data=await fetchNexoraDetails({action:"person",person_id:personId});
+    const p=data.person||{};
+    const nexoraByTmdb=new Map(
+      contents
+        .filter(item=>item?.tmdb_id && item?.is_available===true)
+        .map(item=>[Number(item.tmdb_id),item])
+    );
+    const credits=(p.combined_credits?.cast||[])
+      .filter(x=>x?.id&&x?.media_type&&nexoraByTmdb.has(Number(x.id)))
+      .sort((a,b)=>Number(b.popularity||0)-Number(a.popularity||0))
+      .slice(0,24);
+    $("content").innerHTML=`<section class="person-page"><button class="detail-back" id="personBack">← Retour</button><div class="person-head"><div class="person-photo" style="${p.profile_path?`background-image:url('https://image.tmdb.org/t/p/h632${escapeAttr(p.profile_path)}')`:''}"></div><div><div class="detail-kicker">CASTING NEXORA</div><h1>${escapeHtml(p.name||"Acteur")}</h1><p>${escapeHtml(p.biography||"Biographie indisponible.")}</p>${p.birthday?`<div class="detail-meta">Né(e) le ${escapeHtml(new Date(p.birthday).toLocaleDateString("fr-FR"))}${p.place_of_birth?` · ${escapeHtml(p.place_of_birth)}`:""}</div>`:""}</div></div><div class="detail-block"><div class="detail-block-head"><span>DISPONIBLE SUR NEXORA</span><small>${credits.length} titre${credits.length>1?"s":""}</small></div><div class="credit-grid">${credits.length?credits.map(x=>{const item=nexoraByTmdb.get(Number(x.id));const title=item?.title||x.title||x.name||"Sans titre";const date=x.release_date||x.first_air_date||String(item?.year||"");const poster=item?.poster_url||(x.poster_path?`https://image.tmdb.org/t/p/w342${x.poster_path}`:"");return `<button class="credit-card" data-nexora-content-id="${escapeAttr(item.id)}"><div class="credit-poster" style="${poster?`background-image:url('${escapeAttr(poster)}')`:''}"></div><div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(date?String(date).slice(0,4):"")}</span><small>${escapeHtml(x.character||"")}</small></div></button>`}).join(""):`<p class="detail-muted">Aucun contenu de cet acteur n’est actuellement disponible sur NEXORA.</p>`}</div></div></section>`;
+    $("personBack").addEventListener("click",handleNexoraBack);
+    document.querySelectorAll("[data-nexora-content-id]").forEach(btn=>btn.addEventListener("click",()=>openDetail(btn.dataset.nexoraContentId)));
+    window.scrollTo({top:0,behavior:"smooth"});
+  }catch(error){
+    console.error(error);
+    $("content").innerHTML=`<section class="detail-page"><button class="detail-back" id="personBack">← Retour</button><div class="detail-error"><h2>Impossible de charger cet acteur</h2><p>${escapeHtml(error.message||"Une erreur est survenue.")}</p></div></section>`;
+    $("personBack").addEventListener("click",showHomeView);
+  }
 }
 
 function openTmdbCredit(tmdbId,mediaType){const item=contents.find(x=>Number(x.tmdb_id)===tmdbId);if(item){openDetail(item.id);return}const tempId=`tmdb-${mediaType}-${tmdbId}`;const temp={id:tempId,tmdb_id:tmdbId,type:mediaType==="tv"?"serie":"film",title:"Chargement…",description:"",year:null,genre:"",rating:null,poster_url:null,backdrop_url:null,video_url:null};contents.push(temp);openDetail(tempId)}
