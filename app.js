@@ -1705,12 +1705,12 @@ async function loadContents(){
   await waitForInitialVisuals();
   hidePageLoader();
 
-  // Charger le reste du catalogue en arrière-plan
+  // Compléter le catalogue en arrière-plan sans rerendre la page visible.
+  // Le rerender global provoquait une seconde "actualisation" quelques secondes après le chargement
+  // et reconstruisait tous les carrousels, ce qui nuisait fortement à la fluidité.
   fetchAllContents().then(allContents=>{
     if(allContents.length>contents.length){
-      contents=allContents.map(normalizeContent).filter(isAllowedContent);
-
-      if(!requestedDetail || activeView!=="detail") render();
+      contents=uniqueContentItems(allContents.map(normalizeContent).filter(isAllowedContent));
 
       if ($("status")) {
         $("status").innerHTML=`<span class="status-dot"></span> Catalogue disponible · ${contents.length} contenu(s)`;
