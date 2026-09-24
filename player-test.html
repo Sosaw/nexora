@@ -1149,15 +1149,7 @@
     window.addEventListener('mousemove', resetIdle);
     window.addEventListener('click', resetIdle);
 
-    function desactiverSousTitres() {
-      Array.from(video.textTracks || []).forEach(track => {
-        track.mode = 'disabled';
-      });
-      if (hlsInstance) {
-        hlsInstance.subtitleTrack = -1;
-        hlsInstance.subtitleDisplay = false;
-      }
-    }
+    
 
     function appliquerSousTitres(subtitles) {
       externalSubtitleTracks = Array.isArray(subtitles)
