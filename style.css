@@ -833,13 +833,6 @@ body.player-open{overflow:hidden}
   flex:none;
 }
 /* NEXORA — contrôles de carrousel */
-.row-cards-shell{position:relative;overflow:visible}
-
-.row-cards-shell::after{
-  content:"";
-  position:absolute;
-  top:4px;
-  right:/* NEXORA — contrôles de carrousel */
 .row-cards-shell{
   position:relative;
   overflow:visible;
