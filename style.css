@@ -848,11 +848,11 @@ body.player-open{overflow:hidden}
 }
 .row-cards-shell .row-edge-fade-left{
   left:7%;
-  background:linear-gradient(90deg,rgba(7,8,11,.24),rgba(7,8,11,0));
+  background:linear-gradient(90deg,rgba(7,8,11,0),rgba(7,8,11,.24));
 }
 .row-cards-shell .row-edge-fade-right{
   right:7%;
-  background:linear-gradient(270deg,rgba(7,8,11,.24),rgba(7,8,11,0));
+  background:linear-gradient(270deg,rgba(7,8,11,0),rgba(7,8,11,.24));
 }
 
 .row-cards-shell .row-scroll-list{
