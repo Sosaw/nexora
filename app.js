@@ -1356,26 +1356,9 @@ function bindEpisodeControls(){
   },true);
 }
 
-function getAvailableSeasonNumbers(item){
-  const seasons=getSeasons(item);
-  const fromObject=seasons&&typeof seasons==='object'&&!Array.isArray(seasons)?Object.keys(seasons):[];
-  const count=Number(item?.number_of_seasons||item?.seasons_count||0);
-  const values=[...fromObject,...(count?Array.from({length:Math.min(count,50)},(_,i)=>String(i+1)):[])].map(Number).filter(n=>Number.isFinite(n)&&n>0);
-  return [...new Set(values)].sort((a,b)=>a-b);
-}
-function getPlayerEpisode(item,season,episode){
-  const seasons=getSeasons(item)||{};
-  const list=Array.isArray(seasons[String(season)])?seasons[String(season)]:Array.isArray(seasons[season])?seasons[season]:[];
-  const found=list.find((ep,index)=>Number(ep?.episode_number||index+1)===Number(episode));
-  return found?normalizeEpisode(found,Math.max(0,Number(episode)-1),item,season):episodeFallback(item,season,episode,`Épisode ${episode}`);
-}
-function updatePlayerEpisodeInfo(item,season,episode){
-  const title=$("playerEpisodeInfoTitle"),desc=$("playerEpisodeInfoDescription");
-  if(!title||!desc)return;
-  const ep=getPlayerEpisode(item,season,episode);
-  title.textContent=`Saison ${season} · Épisode ${episode}${ep.name?` — ${ep.name}`:''}`;
-  desc.textContent=ep.overview||`Découvrez l’épisode ${episode} de la saison ${season}.`;
-}
+
+
+
 
 function getPlayerSources(item, season=1, episode=1){
   const sources=[];
@@ -1390,29 +1373,8 @@ function getPlayerSources(item, season=1, episode=1){
   });
   return sources.filter((source,index,array)=>array.findIndex(x=>x.url===source.url)===index);
 }
-function setNativeVideoSource(url){
-  const video=$("playerVideo"),empty=$("playerEmpty");
-  if(!video)return;
-  if(window.__nexoraHls){window.__nexoraHls.destroy();window.__nexoraHls=null;}
-  video.pause(); video.removeAttribute('src'); video.load();
-  if(!url){video.classList.add('hidden'); empty.classList.remove('hidden'); return;}
-  empty.classList.add('hidden'); video.classList.remove('hidden');
-  if(window.Hls && Hls.isSupported() && /\.m3u8($|[?#])/i.test(url)){
-    const hls=new Hls(); hls.loadSource(url); hls.attachMedia(video); window.__nexoraHls=hls;
-  }else{ video.src=url; }
-  video.play().catch(()=>{});
-}
-function renderPlayerSources(item,season=1,episode=1){
-  const bar=$("playerSourceBar"); if(!bar)return;
-  const sources=getPlayerSources(item,season,episode);
-  bar.innerHTML=sources.length?sources.map((source,index)=>`<button type="button" class="player-source ${index===0?'active':''}" data-player-source="${escapeAttr(source.id)}">${escapeHtml(source.name)}</button>`).join(''):'<span class="player-source-empty">Aucune vidéo disponible</span>';
-  bar.querySelectorAll('[data-player-source]').forEach(button=>button.addEventListener('click',()=>{
-    const source=sources.find(x=>x.id===button.dataset.playerSource); if(!source)return;
-    bar.querySelectorAll('[data-player-source]').forEach(x=>x.classList.toggle('active',x===button));
-    setNativeVideoSource(source.url);
-  }));
-  setNativeVideoSource(sources[0]?.url||'');
-}
+
+
 
 function openPlayer(id, initialSeason=1, initialEpisode=1){
   const item = contents.find(x => String(x.id) === String(id));
@@ -1434,7 +1396,7 @@ function openPlayer(id, initialSeason=1, initialEpisode=1){
 
   window.location.href = `/player-test.html?${params.toString()}`;
 }
-function closePlayer(){const video=$("playerVideo");if(window.__nexoraHls){window.__nexoraHls.destroy();window.__nexoraHls=null;}video.pause();video.removeAttribute('src');video.load();document.body.classList.remove('player-open');$("playerModal").classList.add('hidden');$("playerModal").setAttribute('aria-hidden','true');}
+
 
 function setAuthMessage(text="",type=""){$("authMessage").textContent=text;$("authMessage").className=`auth-message ${type}`}
 function updateAuthUI(){const logged=!!currentUser;$("authGuest")?.classList.toggle("hidden",logged);$("authUser")?.classList.toggle("hidden",!logged);if(logged){const name=currentUser.user_metadata?.full_name||currentUser.email?.split("@")[0]||"Compte NEXORA";$("accountName").textContent=name;$("accountEmail").textContent=currentUser.email||"";$("accountAvatar").textContent=name.trim().charAt(0).toUpperCase();$("accountButton").textContent=name.trim().charAt(0).toUpperCase()}else{if($("accountButton"))$("accountButton").textContent="S"}$("authTitle").textContent=authMode==="signup"?"Créer un compte":"Connexion";$("authSubtitle").textContent=authMode==="signup"?"Créez votre compte NEXORA pour commencer.":"Retrouvez votre expérience NEXORA sur tous vos appareils."}
@@ -1444,9 +1406,9 @@ function closeAuth(){$("authModal")?.classList.add("hidden");$("authModal")?.set
 async function submitAuth(){const email=$("authEmail").value.trim(),password=$("authPassword").value,name=$("authName").value.trim();if(!email||!password){setAuthMessage("Renseigne ton e-mail et ton mot de passe.","error");return}if(password.length<6){setAuthMessage("Le mot de passe doit contenir au moins 6 caractères.","error");return}$("authSubmit").disabled=true;setAuthMessage(authMode==="signup"?"Création du compte…":"Connexion…");try{if(authMode==="signup"){const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name:name||undefined},emailRedirectTo:window.location.origin}});if(error)throw error;if(data.session){currentUser=data.user;setAuthMessage("Compte créé. Bienvenue sur NEXORA !","ok");updateAuthUI()}else setAuthMessage("Compte créé. Vérifie ton e-mail pour confirmer ton adresse.","ok")}else{const {data,error}=await db.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;updateAuthUI();setTimeout(closeAuth,450)}}catch(error){console.error(error);setAuthMessage(error.message||"Une erreur est survenue.","error")}finally{$("authSubmit").disabled=false}}
 
 $("closeModal")?.addEventListener("click",closeModal);
-$("closePlayer")?.addEventListener("click",closePlayer);
-$("playerFullscreen")?.addEventListener("click",()=>{const shell=$("playerModal")?.querySelector(".player-shell");if(!shell)return;if(document.fullscreenElement){document.exitFullscreen?.().catch?.(()=>{});}else{shell.requestFullscreen?.().catch?.(()=>{});}});
-$("playerModal")?.addEventListener("click",e=>{if(e.target===$("playerModal"))closePlayer()});
+
+
+
 $("modal")?.addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
 $("modalList")?.addEventListener("click",()=>selected&&toggleList(selected.title));
 $("modalWatch")?.addEventListener("click",()=>selected&&openPlayer(selected.id));
@@ -1464,7 +1426,6 @@ function goToHomeFromBrand(e){
   document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.filter==="all"));
   document.querySelector("#modal")?.classList.add("hidden");
   document.querySelector("#authModal")?.classList.add("hidden");
-  document.querySelector("#playerModal")?.classList.add("hidden");
   document.body.classList.remove("player-open");
   showHomeView();
 }
@@ -1737,132 +1698,5 @@ async function loadContents(){
 
 bindEpisodeControls();
 
-// ==========================================
-// MODULE PUBLICITAIRE NEXORA (3 ÉTAPES)
-// ==========================================
-(() => {
-  const AD_URLS = [
-    'https://omg10.com/4/11814982',
-    'https://omg10.com/4/11814987',
-    'https://omg10.com/4/11814988'
-  ];
 
-  let currentStep = 0;
-  let pendingCallback = null;
-
-  function injectModalIfNeeded() {
-    if (!document.getElementById('adGateModal')) {
-      const modalHTML = `
-      <div id="adGateModal" class="ad-gate-overlay hidden" aria-hidden="true">
-        <div class="ad-gate-box">
-          <button class="ad-gate-close" id="adGateClose" type="button">✕</button>
-          <div class="ad-gate-icon" id="adGateIcon">📢</div>
-          <h3 class="ad-gate-title" id="adGateTitle">Accès au visionnage (1/3)</h3>
-          <p class="ad-gate-desc" id="adGateDesc">NEXORA est entièrement gratuit. Pour maintenir l'infrastructure et la qualité des flux, merci de soutenir la plateforme via ces courts liens partenaires.</p>
-          <div class="ad-gate-bars" id="adGateBars">
-            <span class="bar active"></span><span class="bar"></span><span class="bar"></span>
-          </div>
-          <div class="ad-gate-warning">
-            <span class="warn-icon">⚠️</span>
-            <p>Ne téléchargez rien sur la page publicitaire. Fermez simplement l'onglet dès son apparition et revenez ici.</p>
-          </div>
-          <button id="adGateActionBtn" class="ad-gate-btn ad-btn-gold">📢 Ouvrir le lien 1/3</button>
-          <div class="ad-gate-footer">3 liens partenaires par session — Aucune coupure pendant la lecture.</div>
-        </div>
-      </div>
-      <style>
-        .ad-gate-overlay { position: fixed !important; inset: 0 !important; z-index: 9999999 !important; background: rgba(0,0,0,0.88) !important; backdrop-filter: blur(16px) !important; display: flex !important; align-items: center !important; justify-content: center !important; padding: 18px !important; }
-        .ad-gate-overlay.hidden { display: none !important; }
-        .ad-gate-box { position: relative !important; width: min(480px, 94vw) !important; background: #111216 !important; border: 1.5px solid rgba(197, 255, 61, 0.3) !important; border-radius: 24px !important; padding: 34px 26px !important; text-align: center !important; box-shadow: 0 30px 90px rgba(0,0,0,0.95) !important; color: #f7f8fa !important; font-family: inherit !important; }
-        .ad-gate-close { position: absolute !important; top: 18px !important; right: 18px !important; background: transparent !important; border: 0 !important; color: #71717a !important; font-size: 16px !important; cursor: pointer !important; }
-        .ad-gate-icon { width: 58px !important; height: 58px !important; margin: 0 auto 16px !important; background: rgba(197, 255, 61, 0.1) !important; border: 1px solid rgba(197, 255, 61, 0.25) !important; border-radius: 18px !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 24px !important; }
-        .ad-gate-title { font-size: 22px !important; font-weight: 850 !important; margin: 0 0 14px !important; }
-        .ad-gate-desc { font-size: 13.5px !important; line-height: 1.65 !important; color: #a1a1aa !important; margin: 0 0 20px !important; }
-        .ad-gate-bars { display: flex !important; gap: 8px !important; justify-content: center !important; margin-bottom: 22px !important; }
-        .ad-gate-bars .bar { width: 54px !important; height: 4px !important; border-radius: 99px !important; background: rgba(255,255,255,0.14) !important; }
-        .ad-gate-bars .bar.active { background: #c5ff3d !important; box-shadow: 0 0 10px rgba(197, 255, 61, 0.5) !important; }
-        .ad-gate-warning { display: flex !important; align-items: flex-start !important; gap: 12px !important; background: rgba(239,68,68,0.08) !important; border: 1px solid rgba(239,68,68,0.22) !important; border-radius: 12px !important; padding: 12px 14px !important; text-align: left !important; margin-bottom: 22px !important; }
-        .ad-gate-warning p { margin: 0 !important; font-size: 12px !important; color: #fca5a5 !important; line-height: 1.5 !important; }
-        .ad-gate-btn { width: 100% !important; padding: 14px 20px !important; border-radius: 14px !important; font-size: 15px !important; font-weight: 800 !important; cursor: pointer !important; border: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 8px !important; }
-        .ad-btn-gold { background: #d4a359 !important; color: #121212 !important; }
-        .ad-btn-green { background: #c5ff3d !important; color: #07080b !important; box-shadow: 0 0 20px rgba(197, 255, 61, 0.4) !important; }
-        .ad-gate-footer { margin-top: 18px !important; font-size: 11.5px !important; color: #71717a !important; }
-      </style>`;
-      document.body.insertAdjacentHTML('beforeend', modalHTML);
-    }
-  }
-
-  function updateUI() {
-    const icon = document.getElementById('adGateIcon');
-    const title = document.getElementById('adGateTitle');
-    const desc = document.getElementById('adGateDesc');
-    const btn = document.getElementById('adGateActionBtn');
-    const bars = document.querySelectorAll('#adGateBars .bar');
-    if (!icon || !title || !btn) return;
-
-    bars.forEach((b, i) => b.classList.toggle('active', i <= currentStep - 1));
-
-    if (currentStep >= 1 && currentStep <= 3) {
-      icon.innerHTML = '📢';
-      btn.className = 'ad-gate-btn ad-btn-gold';
-      title.innerText = `Pub ${currentStep} sur 3`;
-      desc.innerText = "NEXORA est entièrement gratuit. Pour maintenir la qualité des flux, merci de soutenir la plateforme via ces courts liens partenaires.";
-      btn.innerText = `📢 Regarder la pub ${currentStep}/3`;
-    } else if (currentStep === 4) {
-      bars.forEach(b => b.classList.add('active'));
-      icon.innerHTML = '▶';
-      btn.className = 'ad-gate-btn ad-btn-green';
-      title.innerText = 'Prêt pour la séance ?';
-      desc.innerText = 'Toutes les étapes sont validées. Vous pouvez dès maintenant lancer votre lecture sans coupure.';
-      btn.innerText = '▶ Lancer la lecture';
-    }
-  }
-
-  window.runAdGate = function(callback) {
-    injectModalIfNeeded();
-    pendingCallback = callback;
-    currentStep = 1;
-    updateUI();
-    document.getElementById('adGateModal').classList.remove('hidden');
-  };
-
-  document.addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'adGateActionBtn') {
-      if (currentStep >= 1 && currentStep <= 3) {
-        window.open(AD_URLS[currentStep - 1], '_blank');
-        currentStep++;
-        updateUI();
-      } else if (currentStep === 4) {
-        document.getElementById('adGateModal').classList.add('hidden');
-        if (typeof pendingCallback === 'function') pendingCallback();
-        currentStep = 0;
-      }
-    }
-    if (e.target && e.target.id === 'adGateClose') {
-      document.getElementById('adGateModal').classList.add('hidden');
-      currentStep = 0;
-    }
-  });
-
-  // Déclenchement automatique sur la page de test (player-test.html)
-  window.addEventListener('DOMContentLoaded', () => {
-    if (window.location.pathname.includes('player')) {
-      const vid = document.getElementById('playerVideo');
-      if (vid) vid.pause();
-
-      setTimeout(() => {
-        window.runAdGate(() => {
-          const v = document.getElementById('playerVideo');
-          if (v) {
-            v.muted = false;
-            v.play().catch(() => {});
-          }
-        });
-      }, 400);
-
-    }
-  });
-})();
-
-document.addEventListener("keydown",event=>{if(event.key==="Escape" && $('playerModal') && !$('playerModal').classList.contains("hidden")){closePlayer();}});
 if(typeof loadContents === 'function') loadContents();
