@@ -424,9 +424,6 @@ function syncRowScrollControls(list){
   const syncButton=(button,show)=>{
     if(!button)return;
     button.disabled=!show;
-    button.hidden=!show;
-    button.style.setProperty("display",show?"grid":"none","important");
-    button.style.setProperty("visibility",show?"visible":"hidden","important");
     button.setAttribute("aria-hidden",show?"false":"true");
     button.setAttribute("tabindex",show?"0":"-1");
   };
