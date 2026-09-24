@@ -1593,7 +1593,7 @@ document.addEventListener("click", event => {
 });
 
 window.addEventListener("scroll",()=>$("topbar")?.classList.toggle("scrolled",window.scrollY>30));
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth();closePlayer()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeAuth()}});
 
 db.auth.getSession().then(({data})=>{currentUser=data.session?.user||null;updateAuthUI()});
 db.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;updateAuthUI()});
