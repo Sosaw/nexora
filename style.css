@@ -833,29 +833,27 @@ body.player-open{overflow:hidden}
   flex:none;
 }
 /* NEXORA — contrôles de carrousel */
-.row-cards-shell{position:relative;overflow:visible}
+.row-cards-shell{
+  position:relative;
+  overflow:visible;
+}
 
-.row-cards-shell::before,
-.row-cards-shell::after{
-  content:"";
+.row-cards-shell .row-edge-fade{
   position:absolute;
   top:4px;
   bottom:16px;
   width:24px;
-  z-index:5;
+  z-index:20;
   pointer-events:none;
 }
-.row-cards-shell::before{
+.row-cards-shell .row-edge-fade-left{
   left:7%;
   background:linear-gradient(90deg,rgba(7,8,11,.24),rgba(7,8,11,0));
 }
-.row-cards-shell::after{
+.row-cards-shell .row-edge-fade-right{
   right:7%;
   background:linear-gradient(270deg,rgba(7,8,11,.24),rgba(7,8,11,0));
-  opacity:0;
-  transition:opacity .18s ease;
 }
-.row-cards-shell.has-right::after{opacity:1}
 
 .row-cards-shell .row-scroll-list{
   position:relative;
@@ -871,7 +869,7 @@ body.player-open{overflow:hidden}
 .row-scroll-control{
   position:absolute;
   top:50%;
-  z-index:10;
+  z-index:30;
   width:44px;
   height:44px;
   padding:0;
@@ -924,13 +922,13 @@ body.player-open{overflow:hidden}
 .row-scroll-control:active{transform:translateY(-50%) scale(.98)}
 
 @media(max-width:1050px){
-  .row-cards-shell::before{left:6%}
-  .row-cards-shell::after{right:6%}
+  .row-cards-shell .row-edge-fade-left{left:6%}
+  .row-cards-shell .row-edge-fade-right{right:6%}
 }
 @media(max-width:760px){
   .row-scroll-control{width:40px;height:40px;font-size:23px}
   .row-scroll-left{left:7px}
   .row-scroll-right{right:7px}
-  .row-cards-shell::before{left:0}
-  .row-cards-shell::after{right:0}
+  .row-cards-shell .row-edge-fade-left{left:0}
+  .row-cards-shell .row-edge-fade-right{right:0}
 }
