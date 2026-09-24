@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1065">
+<link rel="stylesheet" href="style.css?v=1066">
 </head>
 <body>
 <div id="pageLoader" class="page-loader" aria-hidden="false" role="status" aria-live="polite">
@@ -91,29 +91,6 @@
 
 <footer class="site-footer"><div><strong>NEXORA</strong><span>Une expérience de streaming pensée pour les grandes histoires.</span></div><small>Les affiches et métadonnées de démonstration proviennent de TMDB. NEXORA n’est ni approuvé ni certifié par TMDB. Les vidéos doivent être fournies avec les droits de diffusion nécessaires.</small></footer>
 
-<div id="playerModal" class="player-modal hidden" aria-hidden="true">
-  <div class="player-shell">
-    <div class="player-head"><div class="player-title" id="playerTitle">Lecture NEXORA</div><button class="player-close" id="closePlayer" aria-label="Fermer">×</button></div>
-    <div class="player-stage">
-      <button class="player-fullscreen" id="playerFullscreen" type="button" aria-label="Plein écran" title="Plein écran">⛶</button>
-      <div class="player-sourcebar" id="playerSourceBar"></div>
-<div class="player-episode-info hidden" id="playerEpisodeInfo">
-        <strong id="playerEpisodeInfoTitle">Épisode</strong>
-        <p id="playerEpisodeInfoDescription">Description de l’épisode</p>
-      </div>
-      <video id="playerVideo" controls playsinline preload="metadata"></video>
-      <div id="playerEmpty" class="player-empty hidden">
-        <div class="player-empty-inner">
-          <div id="playerPoster" class="player-empty-poster"></div>
-          <h3 id="playerEmptyTitle">Lecture non configurée</h3>
-          <p id="playerEmptyText">Cette fiche est prête pour la lecture. Ajoute dans Supabase une URL de vidéo que tu as les droits de diffuser dans le champ <strong>video_url</strong>.</p>
-          <div class="player-note">NEXORA ne fournit pas de film protégé par le droit d'auteur sans autorisation.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div id="authModal" class="modal hidden" aria-hidden="true">
   <div class="auth-card">
     <button class="close" id="closeAuth" aria-label="Fermer">×</button>
@@ -140,9 +117,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-<script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
-<script src="app.js?v=1040"></script>
+<script src="app.js?v=1041"></script>
 
 </body>
 </html>
